@@ -1,0 +1,11 @@
+[project]
+name = "safepass-backend"
+version = "0.1.0"
+description = "Backend do Assistente Inteligente SAFEpass (Desafio 05)"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = ["live: chama o LLM real (requer LLM_API_KEY)"]
