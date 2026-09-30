@@ -160,6 +160,7 @@ class Assistant:
     user_id: str
     lead_nome: str
     simulate_after_hours: bool = False
+    simulate_within_hours: bool = False
     _consent: bool | None = field(default=None, init=False)
     _handlers: dict[ToolName, Callable[[dict[str, Any]], Awaitable[ToolResult]]] = field(
         default_factory=dict, init=False
@@ -273,6 +274,7 @@ class Assistant:
             now=self.settings.now(),
             number=self.settings.whatsapp_number,
             simulate_after_hours=self.simulate_after_hours,
+            simulate_within_hours=self.simulate_within_hours,
         )
         return result.model_dump(by_alias=True), WhatsappCard(data=result)
 

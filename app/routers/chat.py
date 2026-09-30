@@ -104,6 +104,7 @@ async def _prepare(
         user_id=user_id,
         lead_nome=clean_name(conversation.lead_nome),
         simulate_after_hours=body.simulate_after_hours,
+        simulate_within_hours=body.simulate_within_hours,
     )
     return assistant, history
 

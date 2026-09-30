@@ -15,9 +15,21 @@ def within_business_hours(now: datetime) -> bool:
 
 
 def resolve_whatsapp(
-    motivo: str, nome: str, user_id: str, now: datetime, number: str, simulate_after_hours: bool
+    motivo: str,
+    nome: str,
+    user_id: str,
+    now: datetime,
+    number: str,
+    simulate_after_hours: bool = False,
+    simulate_within_hours: bool = False,
 ) -> WhatsappData:
-    if simulate_after_hours or not within_business_hours(now):
+    """Link do WhatsApp no expediente; fora dele, mensagem para deixar recado.
+
+    As simulações existem para demonstração (forçar um dos dois fluxos a qualquer hora);
+    se as duas vierem ligadas, vale "fora do horário".
+    """
+    within = (within_business_hours(now) or simulate_within_hours) and not simulate_after_hours
+    if not within:
         return WhatsappData(within_hours=False, message=AFTER_HOURS_MESSAGE)
     texto = f"Olá! Sou {nome} (ID {user_id}). Vim do Assistente SAFEpass. Assunto: {motivo}."
     return WhatsappData(within_hours=True, link=f"https://wa.me/{number}?text={quote(texto)}", message=texto)

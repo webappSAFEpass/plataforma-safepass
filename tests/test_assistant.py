@@ -162,7 +162,7 @@ def test_whatsapp_link_within_hours_has_summary_and_user_id():
     assert within_business_hours(monday_10h)
     assert not within_business_hours(datetime(2026, 9, 27, 10, tzinfo=TZ))  # domingo
     assert not within_business_hours(datetime(2026, 9, 28, 18, tzinfo=TZ))
-    data = resolve_whatsapp("estorno", "Ana", "1", monday_10h, "5561999999999", False)
+    data = resolve_whatsapp("estorno", "Ana", "1", monday_10h, "5561999999999")
     assert data.within_hours and data.link.startswith("https://wa.me/5561999999999?text=")
     assert "ID 1" in data.message and "estorno" in data.message
 
@@ -284,3 +284,24 @@ def test_plain_text_strips_markdown():
     from app.assistant.loop import plain_text
 
     assert plain_text("## Planos\n\n- **Aura**: R$ 49,90\n* Aura+\n1. Free") == "Planos\n\nAura: R$ 49,90\nAura+\nFree"
+
+
+def test_whatsapp_simulations_force_either_flow():
+    sunday_3am = datetime(2026, 9, 27, 3, tzinfo=TZ)
+    assert not resolve_whatsapp("x", "Ana", "1", sunday_3am, "5561999999999").within_hours
+    forced = resolve_whatsapp("x", "Ana", "1", sunday_3am, "5561999999999", simulate_within_hours=True)
+    assert forced.within_hours and forced.link
+    monday_10h = datetime(2026, 9, 28, 10, tzinfo=TZ)
+    both = resolve_whatsapp("x", "Ana", "1", monday_10h, "5561", simulate_after_hours=True, simulate_within_hours=True)
+    assert not both.within_hours  # "fora do horário" vence
+
+
+async def test_simulate_within_hours_through_chat(client, llm):
+    conv = await start_conversation(client)
+    llm.push(
+        completion(tool_calls=[tool_call("encaminhar_whatsapp", {"motivo": "estorno"})]),
+        completion("Te encaminhei para o atendimento."),
+    )
+    body = (await client.post("/chat", headers=AUTH, json=chat_body(conv, "estorno", simulateWithinHours=True))).json()
+    card = body["cards"][0]["data"]
+    assert card["withinHours"] is True and card["link"].startswith("https://wa.me/")

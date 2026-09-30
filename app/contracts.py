@@ -156,7 +156,9 @@ class ChatRequest(Model):
     # Ignorado: o nome vem do lead gravado na conversa (o corpo não é confiável para o prompt).
     lead: Lead | None = None
     messages: list[ChatMessage] = Field(min_length=1, max_length=50)
+    # Demonstração: força o fluxo de atendimento humano fora (recado) ou dentro (link) do horário.
     simulate_after_hours: bool = False
+    simulate_within_hours: bool = False
     # True quando o front reenvia o mesmo histórico (ex.: após autorizar o consentimento).
     retry: bool = False
 
