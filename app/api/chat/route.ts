@@ -14,14 +14,21 @@ export async function POST(request: Request) {
   if (!userId) return noSession();
   const body = await readJson(request);
   if (!body) return badRequest();
-  const { conversationId, messages, retry, simulateAfterHours } = body;
+  const { conversationId, messages, retry, simulateAfterHours, simulateWithinHours } = body;
   let res: Response;
   try {
     // O nome do lead não é repassado: o backend usa o que foi gravado na criação do lead.
     // request.signal: se o navegador desistir, a geração no backend é cancelada também.
     res = await backendFetch(
       "/chat/stream",
-      { userId, conversationId, messages, retry: Boolean(retry), simulateAfterHours: Boolean(simulateAfterHours) },
+      {
+        userId,
+        conversationId,
+        messages,
+        retry: Boolean(retry),
+        simulateAfterHours: Boolean(simulateAfterHours),
+        simulateWithinHours: Boolean(simulateWithinHours),
+      },
       request.signal,
     );
   } catch {

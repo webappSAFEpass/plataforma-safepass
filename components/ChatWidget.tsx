@@ -66,14 +66,16 @@ export default function ChatWidget() {
       setMessages((current) => current.map((m) => (m.id === botId ? patch(m) : m)));
     };
 
+    // Demonstração: ?foraDoHorario força o recado; ?dentroDoHorario força o link do WhatsApp.
+    const params = new URLSearchParams(window.location.search);
     try {
       const result = await streamChat(
         {
           conversationId: conversation,
           messages: [{ role: "user", content: question }],
           retry: options.retry,
-          // ?foraDoHorario na URL simula atendimento humano indisponível (demonstração).
-          simulateAfterHours: new URLSearchParams(window.location.search).has("foraDoHorario"),
+          simulateAfterHours: params.has("foraDoHorario"),
+          simulateWithinHours: params.has("dentroDoHorario"),
         },
         {
           onToken: (text) =>
