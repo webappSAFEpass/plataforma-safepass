@@ -35,17 +35,44 @@ Os IDs públicos seguem este formato:
 ## Rodando
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-cp .env.example .env            # SERVICE_TOKENS, DATABASE_URL, LLM_API_KEY
-.venv/bin/python -m scripts.db all --yes   # migrações + RLS + documentos fictícios (+ RAG); --yes porque recria dados
-.venv/bin/uvicorn app.main:app --port 8000 --no-access-log
-.venv/bin/pytest                      # testes com LLM mockado e dados fictícios em memória
-RUN_LIVE=1 .venv/bin/pytest -m live   # matriz de QA do PDF contra o LLM real (~4 min: Groq free = 8k tokens/min)
+make install                              # venv + dependências de dev
+cp .env.example .env                      # SERVICE_TOKENS, DATABASE_URL, LLM_API_KEY
+.venv/bin/python -m scripts.db all --yes  # migrações + RLS + documentos fictícios (+ RAG); --yes porque recria dados
+make run                                  # http://localhost:8000/v1  (health: /health, readiness: /ready)
 ```
+
+| Comando | O que faz |
+|---|---|
+| `make check` | ruff (lint e formatação), mypy strict e os testes, incluindo os de Postgres |
+| `make test` | testes com LLM falso e dados em memória |
+| `make test-pg` | sobe um Postgres local descartável (`.pgtest/`) e roda também o contrato do repositório nele |
+| `make test-live` | matriz de QA do PDF contra o LLM real (~4 min: a Groq gratuita tem limite de 8k tokens/min) |
+| `make lock` | regenera o `requirements.txt` com hashes a partir do `requirements.in` |
+
+O CI (`.github/workflows/ci.yml`) roda lint, mypy e todos os testes contra `pgvector/pgvector:pg17`, incluindo a busca vetorial. Ele também confere se o lockfile está atualizado.
 
 Sem `DATABASE_URL`, o backend roda em memória com dados fictícios no mesmo formato das tabelas. Nesse modo o usuário é o `1`, Ana Beatriz.
 
 Na demo com o Supabase, a sessão usa o usuário **89**: plano Aura+, DF, 2 dependentes e o pet Zeus.
+
+### Estrutura
+
+```
+app/
+  main.py            create_app(settings): rotas sob /v1, handlers de erro {error}, request id, /health, /ready
+  config.py          Settings (uma instância por app, em app.state)
+  deps.py            dependências tipadas (RepoDep, LLMDep, ScopeDep, SettingsDep) + known_user
+  security.py        token de serviço com escopo de usuários
+  observability.py   logs em texto ou JSON com request_id; nada de corpo, query ou PII
+  contracts.py       modelos Pydantic (JSON em camelCase)
+  routers/           data.py (dados) e chat.py (assistente)
+  assistant/         tools.py (registro das 6 ferramentas), loop.py (rodadas), llm.py, prompt.py, fallback.py
+  domain/            ids.py (usuário "89", "dep_3", "pet_7") e documents.py (validade)
+  repos/             base.py (Protocol), memory.py, postgres.py, mapping.py (linha → modelo)
+  services/          search.py (busca tolerante), text.py (normalização e higienização), ratelimit.py
+migrations/          001 (tabelas do assistente + RLS) e 002 (auditoria LGPD, retenção, seed)
+tests/               contrato do repositório (memória e Postgres), API, assistente, hardening, live
+```
 
 ## Autenticação
 
@@ -60,6 +87,8 @@ O `userId` sai sempre da sessão do servidor do Next (`SESSION_USER_ID`), nunca 
 
 ## Endpoints
 
+Todos ficam sob o prefixo `/v1`: `BACKEND_API_URL=http://localhost:8000/v1`. O `/docs` e o `/openapi.json` só aparecem com `EXPOSE_DOCS=true`. Criações respondem 201.
+
 | Método | Path | Resposta |
 |---|---|---|
 | GET | `/plans` | `Plan[]`, da tabela `planos` (`free`, `aura`, `aura_plus`) |
@@ -67,10 +96,10 @@ O `userId` sai sempre da sessão do servidor do Next (`SESSION_USER_ID`), nunca 
 | GET | `/dependents?userId=` | `Dependent[]`, pessoas (`dep_*`) e pets (`pet_*`) |
 | GET | `/documents?userId=&dependentId=` | `DocumentItem[]`; status vencido / vencendo (≤ 30 dias) / válido |
 | GET | `/providers?categoria=&especialidade=&cidade=&modalidade=&limit=` | `Provider[]` (detalhes abaixo) |
-| POST | `/leads` `{userId, nome, telefone, mensagem}` | `{leadId, conversationId}` |
+| POST | `/leads` `{userId, nome, telefone, mensagem}` | 201 `{leadId, conversationId}` |
 | POST | `/chat` `{userId, conversationId, messages, simulateAfterHours?, retry?}` | `{reply, cards, debug{intent, toolCalls, latencyMs}}` |
 | POST | `/chat/stream` (mesmo corpo) | SSE com eventos `token`, `reset`, `card`, `done` (ChatResponse) e `error` |
-| POST | `/recados` `{userId, conversationId, mensagem}` | `{ok: true}` |
+| POST | `/recados` `{userId, conversationId, mensagem}` | 201 `{ok: true}` |
 | GET/POST | `/consent` `{userId, action: grant\|revoke}` | `{granted, grantedAt, expiresAt}` |
 
 Como o `/chat` funciona:

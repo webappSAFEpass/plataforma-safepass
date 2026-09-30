@@ -9,7 +9,8 @@ import os
 import httpx
 import pytest
 
-from app.config import Settings, get_settings
+from app.config import Settings
+from app.main import create_app
 
 pytestmark = pytest.mark.live
 
@@ -25,32 +26,45 @@ async def pace():
 
 
 @pytest.fixture
-async def live(monkeypatch):
-    monkeypatch.setenv("SERVICE_TOKENS", "live-token:1")
-    monkeypatch.setenv("DATABASE_URL", "")
-    get_settings.cache_clear()
-    from app.main import app
+async def live():
+    # LLM real (do .env), mas dados fictícios em memória e token próprio do teste.
+    app = create_app(Settings(service_tokens="live-token:1", database_url=None))
 
-    async with app.router.lifespan_context(app):
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t",
-                                     headers={"Authorization": "Bearer live-token"}, timeout=60) as c:
-            conv = (await c.post("/leads", json={"userId": "1", "nome": "Ana Beatriz",
-                                                 "telefone": "61999990000", "mensagem": "oi"})).json()["conversationId"]
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://t/v1",
+            headers={"Authorization": "Bearer live-token"},
+            timeout=60,
+        ) as c,
+    ):
+        conv = (
+            await c.post(
+                "/leads", json={"userId": "1", "nome": "Ana Beatriz", "telefone": "61999990000", "mensagem": "oi"}
+            )
+        ).json()["conversationId"]
 
-            async def ask(*turns: str, **extra) -> dict:
-                msgs = []
-                body = {}
-                for i, t in enumerate(turns):
-                    msgs.append({"role": "user", "content": t})
-                    res = await c.post("/chat", json={"userId": "1", "conversationId": conv,
-                                                      "lead": {"nome": "Ana Beatriz", "telefone": "61999990000"},
-                                                      "messages": msgs, **extra})
-                    body = res.json()
-                    msgs.append({"role": "assistant", "content": body["reply"]})
-                return body
+        async def ask(*turns: str, **extra) -> dict:
+            msgs = []
+            body = {}
+            for t in turns:
+                msgs.append({"role": "user", "content": t})
+                res = await c.post(
+                    "/chat",
+                    json={
+                        "userId": "1",
+                        "conversationId": conv,
+                        "lead": {"nome": "Ana Beatriz", "telefone": "61999990000"},
+                        "messages": msgs,
+                        **extra,
+                    },
+                )
+                body = res.json()
+                msgs.append({"role": "assistant", "content": body["reply"]})
+            return body
 
-            yield ask
-    get_settings.cache_clear()
+        yield ask
 
 
 async def test_rag_price(live):

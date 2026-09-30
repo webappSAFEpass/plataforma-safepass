@@ -1,17 +1,18 @@
-"""Orquestração do assistente — porta de safepass-buddy/src/lib/safepass/chat.server.ts."""
+"""Orquestração do assistente: rodadas de tool calling sobre um LLM compatível com OpenAI."""
 
 import json
 import logging
 import re
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 from app.assistant.fallback import resolve_whatsapp
-from app.assistant.llm import LLMClient, LLMError, Turn
+from app.assistant.llm import LLMClient, LLMError, LLMMessage, Turn
 from app.assistant.prompt import RAG_INSTRUCTION, build_system_prompt, knowledge_text
-from app.assistant.tools import INTENT_BY_TOOL, PRIVATE_TOOLS, TOOLS
+from app.assistant.tools import SPECS, TOOLS, ToolName, tool_error
 from app.config import Settings
 from app.contracts import (
     Card,
@@ -21,6 +22,7 @@ from app.contracts import (
     ConsentCard,
     ConsentData,
     DocumentsCard,
+    Intent,
     ProviderFilters,
     ProvidersCard,
     ToolCallLog,
@@ -52,23 +54,41 @@ _REVOKE_COMMAND = re.compile(
 )
 
 _WEEKDAYS = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
-_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto",
-           "setembro", "outubro", "novembro", "dezembro"]
+_MONTHS = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+]
 
 
 def format_date_pt(now: datetime) -> str:
     return f"{_WEEKDAYS[now.weekday()]}, {now.day} de {_MONTHS[now.month - 1]} de {now.year}"
 
 
+def _compact(text: str) -> str:
+    return re.sub(r"\s+", " ", normalize(text)).strip()
+
+
 def is_revoke_request(text: str) -> bool:
     if "?" in text:
         return False
-    t = re.sub(r"[,.!;:]+", " ", normalize(text))
-    return _REVOKE_COMMAND.fullmatch(re.sub(r"\s+", " ", t).strip()) is not None
+    return _REVOKE_COMMAND.fullmatch(_compact(re.sub(r"[,.!;:]+", " ", text))) is not None
 
 
 def consent_active(granted_at: datetime | None, settings: Settings) -> bool:
     return bool(granted_at and granted_at + timedelta(days=settings.consent_valid_days) > settings.now())
+
+
+# ---- Eventos emitidos por Assistant.events() ----
 
 
 @dataclass
@@ -92,6 +112,44 @@ class Done:
 
 
 Event = Token | Reset | CardEvent | Done
+ToolResult = tuple[object, Card | None]
+_TOOL_NAMES = {str(t) for t in ToolName}
+
+
+@dataclass
+class _RunState:
+    """Acumulado de uma resposta: cards, ferramentas chamadas e intenção."""
+
+    started: float = field(default_factory=time.monotonic)
+    cards: list[Card] = field(default_factory=list)
+    tool_log: list[ToolCallLog] = field(default_factory=list)
+    intent: Intent = "conversa_geral"
+
+    def add_card(self, card: Card) -> bool:
+        # Um único pedido de consentimento por resposta, mesmo se várias ferramentas o exigirem.
+        if card.type == "consent" and any(c.type == "consent" for c in self.cards):
+            return False
+        self.cards.append(card)
+        return True
+
+    def done(self, reply: str) -> Done:
+        return Done(
+            ChatResponse(
+                reply=reply or FALLBACK_REPLY,
+                cards=self.cards,
+                debug=ChatDebug(
+                    intent=self.intent,
+                    tool_calls=self.tool_log,
+                    latency_ms=int((time.monotonic() - self.started) * 1000),
+                ),
+            )
+        )
+
+
+@dataclass
+class _TurnResult:
+    turn: Turn | None = None
+    streamed: bool = False  # algum texto desta rodada já foi enviado ao cliente
 
 
 @dataclass
@@ -103,198 +161,224 @@ class Assistant:
     lead_nome: str
     simulate_after_hours: bool = False
     _consent: bool | None = field(default=None, init=False)
+    _handlers: dict[ToolName, Callable[[dict[str, Any]], Awaitable[ToolResult]]] = field(
+        default_factory=dict, init=False
+    )
+
+    def __post_init__(self) -> None:
+        self._handlers = {
+            ToolName.BASE_CONHECIMENTO: self._tool_knowledge,
+            ToolName.MINHA_CONTA: self._tool_account,
+            ToolName.DEPENDENTES: self._tool_dependents,
+            ToolName.DOCUMENTOS: self._tool_documents,
+            ToolName.PRESTADORES: self._tool_providers,
+            ToolName.WHATSAPP: self._tool_whatsapp,
+        }
+
+    # ---- Ferramentas ----
 
     async def _has_consent(self) -> bool:
         if self._consent is None:
             self._consent = consent_active(await self.repo.get_consent(self.user_id), self.settings)
         return self._consent
 
-    async def run_tool(self, name: str, args: dict) -> tuple[object, Card | None]:
-        if name in PRIVATE_TOOLS and not await self._has_consent():
+    async def run_tool(self, name: str, args: dict[str, Any]) -> ToolResult:
+        try:
+            tool = ToolName(name)
+        except ValueError:
+            return tool_error("ferramenta_desconhecida", "Essa ferramenta não existe."), None
+        if SPECS[tool].requires_consent and not await self._has_consent():
             return (
-                {"erro": "consentimento_necessario",
-                 "detalhe": "O usuário ainda não autorizou o uso dos dados. Não mostre dados; peça a autorização no card exibido."},
+                tool_error(
+                    "consentimento_necessario",
+                    "O usuário ainda não autorizou o uso dos dados. Não mostre dados; "
+                    "peça a autorização no card exibido.",
+                ),
                 ConsentCard(data=ConsentData(message=CONSENT_MESSAGE)),
             )
+        return await self._handlers[tool](args)
 
-        match name:
-            case "consultar_base_conhecimento":
-                return await self._knowledge(str(args.get("pergunta") or "")), None
-
-            case "consultar_minha_conta":
-                profile = await self.repo.get_user(self.user_id)
-                return (profile.model_dump(by_alias=True) if profile else {"erro": "conta não encontrada"}), None
-
-            case "consultar_dependentes":
-                deps = await self.repo.list_dependents(self.user_id)
-                return [d.model_dump(by_alias=True) for d in deps], None
-
-            case "consultar_documentos":
-                titular_id: str | None = None
-                nome = args.get("nome_dependente")
-                if isinstance(nome, str) and nome.strip():
-                    titular_id = await self._resolve_titular(nome)
-                    if titular_id is None:
-                        return (
-                            {"erro": "sem permissão",
-                             "detalhe": "Esse nome não pertence ao usuário logado nem aos dependentes dele. Recuse educadamente por privacidade."},
-                            None,
-                        )
-                today = self.settings.today()
-                docs = [d.to_item(today) for d in await self.repo.list_documents(self.user_id, titular_id)]
-                return [d.model_dump(by_alias=True) for d in docs], DocumentsCard(data=docs)
-
-            case "buscar_prestadores":
-                modalidade = args.get("modalidade")
-                filters = ProviderFilters(
-                    categoria=_str(args.get("categoria")),
-                    especialidade=_str(args.get("especialidade")),
-                    cidade=_str(args.get("cidade")),
-                    modalidade=modalidade if modalidade in ("presencial", "online") else None,
-                )
-                found = await self.repo.list_providers(filters)
-                top = found[:MAX_PROVIDERS]
-                content = {
-                    "total_encontrado": len(found),
-                    "prestadores": [
-                        p.model_dump(by_alias=True, include={"nome", "categoria", "tags", "modalidade",
-                                                             "localizacao", "faixa_preco", "avaliacao"})
-                        for p in top
-                    ],
-                }
-                return content, ProvidersCard(data=top, total=len(found))
-
-            case "encaminhar_whatsapp":
-                result = resolve_whatsapp(
-                    motivo=_str(args.get("motivo")) or "atendimento",
-                    nome=self.lead_nome,
-                    user_id=self.user_id,
-                    now=self.settings.now(),
-                    number=self.settings.whatsapp_number,
-                    simulate_after_hours=self.simulate_after_hours,
-                )
-                return result.model_dump(by_alias=True), WhatsappCard(data=result)
-
-        return {"erro": "ferramenta desconhecida"}, None
-
-    async def _knowledge(self, pergunta: str) -> dict:
+    async def _tool_knowledge(self, args: dict[str, Any]) -> ToolResult:
+        pergunta = _str(args.get("pergunta"))
         if pergunta:
             try:
                 embedding = await self.llm.embed(pergunta)
                 chunks = await self.repo.search_knowledge(embedding, 3) if embedding else None
                 if chunks:
-                    return {"instrucao": RAG_INSTRUCTION, "contexto": chunks}
+                    return {"instrucao": RAG_INSTRUCTION, "contexto": chunks}, None
             except Exception as exc:  # RAG indisponível não derruba a conversa
                 log.warning("RAG indisponível, usando base completa: %s", type(exc).__name__)
-        return {"instrucao": RAG_INSTRUCTION, "contexto": knowledge_text(await self.repo.list_plans())}
+        return {"instrucao": RAG_INSTRUCTION, "contexto": knowledge_text(await self.repo.list_plans())}, None
 
-    async def _resolve_titular(self, nome: str) -> str | None:
-        """Nome → id, só entre o próprio usuário e os dependentes dele. Exato primeiro, depois parcial."""
-        wanted = normalize(nome)
-        people = [(d.id, normalize(d.nome)) for d in await self.repo.list_dependents(self.user_id)]
+    async def _tool_account(self, _: dict[str, Any]) -> ToolResult:
+        profile = await self.repo.get_user(self.user_id)
+        if profile is None:
+            return tool_error("conta_nao_encontrada", "Não encontrei a conta do usuário."), None
+        return profile.model_dump(by_alias=True), None
+
+    async def _tool_dependents(self, _: dict[str, Any]) -> ToolResult:
+        return [d.model_dump(by_alias=True) for d in await self.repo.list_dependents(self.user_id)], None
+
+    async def _tool_documents(self, args: dict[str, Any]) -> ToolResult:
+        titular_id: str | None = None
+        nome = _str(args.get("nome_dependente"))
+        if nome:
+            matches = await self._resolve_titular(nome)
+            if not matches:
+                return tool_error(
+                    "sem_permissao",
+                    "Esse nome não pertence ao usuário logado nem aos dependentes dele. "
+                    "Recuse educadamente por privacidade.",
+                ), None
+            if len(matches) > 1:
+                return tool_error(
+                    "nome_ambiguo",
+                    "Mais de uma pessoa da família combina com esse nome. Pergunte qual destas: "
+                    + ", ".join(name for _, name in matches)
+                    + ".",
+                ), None
+            titular_id = matches[0][0]
+        today = self.settings.today()
+        docs = [d.to_item(today) for d in await self.repo.list_documents(self.user_id, titular_id)]
+        return [d.model_dump(by_alias=True) for d in docs], DocumentsCard(data=docs)
+
+    async def _tool_providers(self, args: dict[str, Any]) -> ToolResult:
+        modalidade = args.get("modalidade")
+        filters = ProviderFilters(
+            categoria=_str(args.get("categoria")),
+            especialidade=_str(args.get("especialidade")),
+            cidade=_str(args.get("cidade")),
+            modalidade=modalidade if modalidade in ("presencial", "online") else None,
+        )
+        found = await self.repo.list_providers(filters)
+        top = found[:MAX_PROVIDERS]
+        content = {
+            "total_encontrado": len(found),
+            # Sem telefone/descrição: o modelo não precisa deles, o card mostra.
+            "prestadores": [
+                p.model_dump(
+                    by_alias=True,
+                    include={"nome", "categoria", "tags", "modalidade", "localizacao", "faixa_preco", "avaliacao"},
+                )
+                for p in top
+            ],
+        }
+        return content, ProvidersCard(data=top, total=len(found))
+
+    async def _tool_whatsapp(self, args: dict[str, Any]) -> ToolResult:
+        result = resolve_whatsapp(
+            motivo=_str(args.get("motivo")) or "atendimento",
+            nome=self.lead_nome,
+            user_id=self.user_id,
+            now=self.settings.now(),
+            number=self.settings.whatsapp_number,
+            simulate_after_hours=self.simulate_after_hours,
+        )
+        return result.model_dump(by_alias=True), WhatsappCard(data=result)
+
+    async def _resolve_titular(self, nome: str) -> list[tuple[str, str]]:
+        """Nome → [(id, nome)], só entre o usuário e a família dele. Exato vence; senão, todos os parciais."""
+        wanted = _compact(nome)
+        people = [(d.id, d.nome) for d in await self.repo.list_dependents(self.user_id)]
         profile = await self.repo.get_user(self.user_id)
         if profile:
-            people.append((profile.id, normalize(profile.nome)))
-        for pid, pname in people:
-            if pname == wanted:
-                return pid
-        for pid, pname in people:
-            if wanted in pname.split() or pname.startswith(wanted):
-                return pid
-        return None
+            people.append((profile.id, profile.nome))
+        exact = [p for p in people if _compact(p[1]) == wanted]
+        if exact:
+            return exact[:1]
+        return [p for p in people if wanted in _compact(p[1]).split() or _compact(p[1]).startswith(wanted)]
+
+    # ---- Rodadas ----
 
     async def events(self, history: list[ChatMessage], stream: bool) -> AsyncIterator[Event]:
-        started = time.monotonic()
-        cards: list[Card] = []
-        tool_log: list[ToolCallLog] = []
-        intent = "conversa_geral"
-
-        def done(reply: str) -> Done:
-            return Done(ChatResponse(
-                reply=reply or FALLBACK_REPLY,
-                cards=cards,
-                debug=ChatDebug(intent=intent, tool_calls=tool_log,
-                                latency_ms=int((time.monotonic() - started) * 1000)),
-            ))
-
+        state = _RunState()
         last = history[-1]
         if last.role == "user" and is_revoke_request(last.content):
             await self.repo.set_consent(self.user_id, None, origem="mensagem")
             self._consent = False
             yield Token(REVOKE_REPLY)
-            yield done(REVOKE_REPLY)
+            yield state.done(REVOKE_REPLY)
             return
 
-        messages: list[dict] = [
+        messages: list[LLMMessage] = [
             {"role": "system", "content": build_system_prompt(self.lead_nome, format_date_pt(self.settings.now()))},
             *({"role": m.role, "content": m.content} for m in history),
         ]
-
         reply = ""
         retried = False
         round_ = 0
         while round_ <= MAX_TOOL_ROUNDS:
             tools = TOOLS if round_ < MAX_TOOL_ROUNDS else None  # última rodada força resposta em texto
-            turn: Turn | None = None
-            streamed = False
+            result = _TurnResult()
             try:
-                if stream:
-                    async for chunk in self.llm.stream(messages, tools):
-                        if isinstance(chunk, Turn):
-                            turn = chunk
-                        else:
-                            streamed = True
-                            yield Token(chunk)
-                else:
-                    turn = await self.llm.complete(messages, tools)
+                async for token in self._turn(messages, tools, stream, result):
+                    yield token
             except LLMError as exc:
                 # Falha pontual (chamada de ferramenta malformada, conexão): tenta a rodada mais uma vez.
                 if retried or not exc.retryable:
                     raise
                 log.warning("rodada do LLM falhou, repetindo: %s", exc)
+            turn = result.turn
             if turn is not None and turn.tool_calls and tools is None:
-                # Rodada final é só texto: ferramentas pedidas mesmo assim são ignoradas.
-                turn = Turn(content=turn.content)
-            if turn is None or (not turn.tool_calls and not turn.content.strip()):
-                if streamed:
+                turn = Turn(content=turn.content)  # rodada final é só texto: ignora ferramentas pedidas
+            if turn is None or turn.is_empty:
+                if result.streamed:
                     yield Reset()
-                if not retried:
-                    retried = True
-                    continue
-                break
-
-            if turn.tool_calls and streamed:
-                yield Reset()  # "Vou verificar..." antes das ferramentas não é a resposta final
-
+                if retried:
+                    break
+                retried = True
+                continue
             if not turn.tool_calls:
                 reply = turn.content
-                if not stream and reply:
+                if not stream:
                     yield Token(reply)
                 break
-
+            if result.streamed:
+                yield Reset()  # "Vou verificar..." antes das ferramentas não é a resposta final
             round_ += 1
-            messages.append(turn.as_message())
-            consent_card_sent = any(c.type == "consent" for c in cards)
-            for call in turn.tool_calls:
-                try:
-                    args = json.loads(call.arguments or "{}")
-                    if not isinstance(args, dict):
-                        args = {}
-                except json.JSONDecodeError:
-                    args = {}
-                tool_log.append(ToolCallLog(name=call.name, args=args))
-                intent = INTENT_BY_TOOL.get(call.name, intent)
-                content, card = await self.run_tool(call.name, args)
-                if card and not (card.type == "consent" and consent_card_sent):
-                    consent_card_sent = consent_card_sent or card.type == "consent"
-                    cards.append(card)
-                    yield CardEvent(card)
-                messages.append({"role": "tool", "tool_call_id": call.id,
-                                 "content": json.dumps(content, ensure_ascii=False)})
+            async for card_event in self._run_calls(turn, messages, state):
+                yield card_event
 
         if not reply:
             yield Token(FALLBACK_REPLY)
-        yield done(plain_text(reply))
+        yield state.done(plain_text(reply))
+
+    async def _turn(
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None, stream: bool, out: _TurnResult
+    ) -> AsyncIterator[Token]:
+        """Uma chamada ao LLM. Em streaming, repassa o texto; o Turn completo fica em `out`."""
+        if not stream:
+            out.turn = await self.llm.complete(messages, tools)
+            return
+        async for chunk in self.llm.stream(messages, tools):
+            if isinstance(chunk, Turn):
+                out.turn = chunk
+            else:
+                out.streamed = True
+                yield Token(chunk)
+
+    async def _run_calls(self, turn: Turn, messages: list[LLMMessage], state: _RunState) -> AsyncIterator[CardEvent]:
+        """Executa as ferramentas pedidas e devolve os resultados ao histórico do modelo."""
+        messages.append(turn.as_message())
+        for call in turn.tool_calls:
+            args = _parse_args(call.arguments)
+            state.tool_log.append(ToolCallLog(name=call.name, args=args))
+            if call.name in _TOOL_NAMES:
+                state.intent = SPECS[ToolName(call.name)].intent
+            content, card = await self.run_tool(call.name, args)
+            if card and state.add_card(card):
+                yield CardEvent(card)
+            messages.append(
+                {"role": "tool", "tool_call_id": call.id, "content": json.dumps(content, ensure_ascii=False)}
+            )
+
+
+def _parse_args(raw: str) -> dict[str, Any]:
+    try:
+        args = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return {}
+    return args if isinstance(args, dict) else {}
 
 
 _MD_BULLET = re.compile(r"(?m)^[ \t]*(?:[-*•]|\d+[.)])[ \t]+")

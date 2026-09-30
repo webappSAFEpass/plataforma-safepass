@@ -5,10 +5,14 @@ import json
 import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import Any
 
 import httpx
 
 from app.config import Settings
+
+# Mensagem no formato chat/completions ({"role", "content", "tool_calls"?, "tool_call_id"?}).
+LLMMessage = dict[str, Any]
 
 
 class LLMError(Exception):
@@ -75,8 +79,12 @@ class Turn:
     content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
 
-    def as_message(self) -> dict:
-        msg: dict = {"role": "assistant", "content": self.content or None}
+    @property
+    def is_empty(self) -> bool:
+        return not self.tool_calls and not self.content.strip()
+
+    def as_message(self) -> LLMMessage:
+        msg: LLMMessage = {"role": "assistant", "content": self.content or None}
         if self.tool_calls:
             msg["tool_calls"] = [
                 {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": c.arguments}}
@@ -97,15 +105,15 @@ class LLMClient:
     def _headers(self, key: str | None) -> dict[str, str]:
         return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
-    def _body(self, messages: list[dict], tools: list[dict] | None, stream: bool) -> dict:
-        body: dict = {"model": self.settings.llm_model, "messages": messages, "temperature": 0.3}
+    def _body(self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None, stream: bool) -> dict[str, Any]:
+        body: dict[str, Any] = {"model": self.settings.llm_model, "messages": messages, "temperature": 0.3}
         if tools:
             body["tools"] = tools
         if stream:
             body["stream"] = True
         return body
 
-    async def complete(self, messages: list[dict], tools: list[dict] | None) -> Turn:
+    async def complete(self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None) -> Turn:
         url = _endpoint(self.settings.llm_base_url, "/chat/completions")
         waited = 0.0
         try:
@@ -137,17 +145,20 @@ class LLMClient:
         except (ValueError, KeyError, TypeError, AttributeError, IndexError) as exc:
             raise LLMError("invalid_response", res.status_code) from exc
 
-    async def stream(self, messages: list[dict], tools: list[dict] | None) -> AsyncIterator[str | Turn]:
+    async def stream(self, messages: list[LLMMessage], tools: list[dict[str, Any]] | None) -> AsyncIterator[str | Turn]:
         """Emite pedaços de texto (str) conforme chegam e, no fim, o Turn completo."""
         url = _endpoint(self.settings.llm_base_url, "/chat/completions")
         content: list[str] = []
-        calls: dict[int, dict] = {}
+        calls: dict[int, dict[str, str]] = {}
         waited = 0.0
         try:
             while True:
                 request = self.http.build_request(
-                    "POST", url, headers=self._headers(self.settings.llm_api_key),
-                    json=self._body(messages, tools, stream=True), timeout=self.settings.llm_timeout_s,
+                    "POST",
+                    url,
+                    headers=self._headers(self.settings.llm_api_key),
+                    json=self._body(messages, tools, stream=True),
+                    timeout=self.settings.llm_timeout_s,
                 )
                 res = await self.http.send(request, stream=True)
                 delay = _retry_after(res) if res.status_code == 429 else 0
@@ -192,8 +203,7 @@ class LLMClient:
         yield Turn(
             content="".join(content),
             tool_calls=[
-                ToolCall(c["id"] or f"call_{i}", c["name"], c["arguments"] or "{}")
-                for i, c in sorted(calls.items())
+                ToolCall(c["id"] or f"call_{i}", c["name"], c["arguments"] or "{}") for i, c in sorted(calls.items())
             ],
         )
 
@@ -213,6 +223,7 @@ class LLMClient:
         if res.status_code >= 400:
             raise LLMError("http", res.status_code, _error_code(res.content))
         try:
-            return res.json()["data"][0]["embedding"]
+            embedding: list[float] = res.json()["data"][0]["embedding"]
+            return embedding
         except (ValueError, KeyError, TypeError, IndexError) as exc:
             raise LLMError("invalid_response", res.status_code) from exc

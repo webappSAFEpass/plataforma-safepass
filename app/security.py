@@ -1,9 +1,10 @@
 import hmac
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.config import Settings, get_settings
+from app.config import Settings
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -20,9 +21,14 @@ class ServiceScope:
         return user_id
 
 
+def _settings(request: Request) -> Settings:
+    settings: Settings = request.app.state.settings
+    return settings
+
+
 def require_service_token(
-    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
-    settings: Settings = Depends(get_settings),
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    settings: Annotated[Settings, Depends(_settings)],
 ) -> ServiceScope:
     if creds is None or creds.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="token de serviço ausente")
@@ -30,11 +36,3 @@ def require_service_token(
         if hmac.compare_digest(creds.credentials.encode(), token.encode()):
             return ServiceScope(users)
     raise HTTPException(status_code=401, detail="token de serviço inválido")
-
-
-def get_repo(request: Request):
-    return request.app.state.repo
-
-
-def get_llm(request: Request):
-    return request.app.state.llm

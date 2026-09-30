@@ -1,10 +1,13 @@
 import json
+from datetime import date
 
 import httpx
 import pytest
 import respx
+from fastapi import FastAPI
 
-from app.config import get_settings
+from app.config import Settings
+from app.main import create_app
 
 TOKEN = "test-token-usr001"
 OTHER_TOKEN = "test-token-other-service"
@@ -12,35 +15,40 @@ LLM_URL = "https://llm.test/v1/chat/completions"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 
-@pytest.fixture
-def env(monkeypatch):
-    monkeypatch.setenv("SERVICE_TOKENS", f"{TOKEN}:1,{OTHER_TOKEN}:999")
-    monkeypatch.setenv("LLM_API_KEY", "sk-test")
-    monkeypatch.setenv("LLM_BASE_URL", "https://llm.test/v1")
-    monkeypatch.setenv("LLM_MODEL", "test-model")
-    monkeypatch.setenv("TODAY_OVERRIDE", "2026-08-20")
-    # Vazio (e não ausente) para não herdar valores de um .env local.
-    monkeypatch.setenv("DATABASE_URL", "")
-    monkeypatch.setenv("EMBEDDINGS_API_KEY", "")
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
+def make_settings(**overrides: object) -> Settings:
+    """Settings isolado: nunca lê o .env local (que tem credenciais reais)."""
+    base: dict[str, object] = {
+        "service_tokens": f"{TOKEN}:1,{OTHER_TOKEN}:999",
+        "llm_api_key": "sk-test",
+        "llm_base_url": "https://llm.test/v1",
+        "llm_model": "test-model",
+        "today_override": date(2026, 8, 20),
+        "database_url": None,
+        "embeddings_api_key": None,
+    }
+    return Settings(_env_file=None, **(base | overrides))  # type: ignore[call-arg]
 
 
 @pytest.fixture
-async def client(env):
-    from app.main import app
+def settings() -> Settings:
+    return make_settings()
 
+
+@pytest.fixture
+def app(settings: Settings) -> FastAPI:
+    return create_app(settings)
+
+
+@pytest.fixture
+async def client(app: FastAPI):
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test/v1") as c:
             yield c
 
 
 @pytest.fixture
-def repo(client):
-    from app.main import app
-
+def repo(app: FastAPI, client):
     return app.state.repo
 
 
@@ -48,8 +56,7 @@ def repo(client):
 
 
 def tool_call(name: str, args: dict | None = None, call_id: str = "call_1") -> dict:
-    return {"id": call_id, "type": "function",
-            "function": {"name": name, "arguments": json.dumps(args or {})}}
+    return {"id": call_id, "type": "function", "function": {"name": name, "arguments": json.dumps(args or {})}}
 
 
 def completion(content: str | None = None, tool_calls: list[dict] | None = None) -> httpx.Response:
@@ -92,13 +99,20 @@ def llm():
 
 
 async def start_conversation(client: httpx.AsyncClient, mensagem: str = "Oi") -> str:
-    res = await client.post("/leads", headers=AUTH, json={
-        "userId": "1", "nome": "Ana Beatriz", "telefone": "61999990000", "mensagem": mensagem})
-    assert res.status_code == 200, res.text
+    res = await client.post(
+        "/leads",
+        headers=AUTH,
+        json={"userId": "1", "nome": "Ana Beatriz", "telefone": "61999990000", "mensagem": mensagem},
+    )
+    assert res.status_code == 201, res.text
     return res.json()["conversationId"]
 
 
 def chat_body(conversation_id: str, text: str, **extra) -> dict:
-    return {"userId": "1", "conversationId": conversation_id,
-            "lead": {"nome": "Ana Beatriz", "telefone": "61999990000"},
-            "messages": [{"role": "user", "content": text}], **extra}
+    return {
+        "userId": "1",
+        "conversationId": conversation_id,
+        "lead": {"nome": "Ana Beatriz", "telefone": "61999990000"},
+        "messages": [{"role": "user", "content": text}],
+        **extra,
+    }

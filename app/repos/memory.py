@@ -2,43 +2,11 @@ import uuid
 from datetime import date, datetime
 
 from app.contracts import Dependent, Plan, Provider, ProviderFilters, UserProfile
-from app.repos.base import Conversation, MessageRow, RawDocument, parse_user_id, titular_key
+from app.domain.ids import parse_user_id, titular_key
+from app.repos.base import Conversation, MessageRow, RawDocument
+from app.repos.mapping import plan_from_row, profile_from_row, provider_from_row
 from app.seed import data
-from app.services.text import filter_providers, plan_slug, uf_from_address
-
-
-def plan_from_row(row: dict) -> Plan:
-    return Plan(**{**row, "id": plan_slug(row["nome"]), "valor": float(row["valor"])})
-
-
-def provider_from_row(row: dict) -> Provider:
-    return Provider(
-        id=str(row["id"]),
-        nome=row["nome"],
-        categoria=row["categoria"],
-        registro_profissional=row["registro_profissional"],
-        descricao=row["descricao_atendimento"],
-        tags=list(row["tags_atendimento"] or []),
-        modalidade=row["modalidade_atendimento"],
-        localizacao=row["localizacao_atendimento"],
-        faixa_preco=row["faixa_preco"],
-        avaliacao=float(row["avaliacao"]) if row["avaliacao"] is not None else None,
-        qtd_avaliacoes=row["qtd_avaliacoes"],
-        telefone=row["telefone"],
-    )
-
-
-def profile_from_row(row: dict, plans: dict[int, dict]) -> UserProfile:
-    plano = plans.get(row["plano_safepass_id"]) or plans[1]
-    return UserProfile(
-        id=str(row["id"]),
-        nome=row["nome"],
-        plano=plan_slug(plano["nome"]),
-        plano_nome=plano["nome"],
-        uf=uf_from_address(row["endereco"]),
-        possui_plano_saude=row["possui_plano_saude"],
-        plano_saude=row["plano_saude"],
-    )
+from app.services.search import filter_providers
 
 
 class MemoryRepository:
@@ -48,12 +16,12 @@ class MemoryRepository:
         self.plans = {p["id"]: p for p in data.PLANOS}
         self.users = {u["id"]: u for u in data.USUARIOS}
         self.providers = [provider_from_row(p) for p in data.PRESTADORES]
-        self.leads: dict[str, dict] = {}
-        self.conversations: dict[str, dict] = {}
+        self.leads: dict[str, dict[str, str]] = {}
+        self.conversations: dict[str, dict[str, str]] = {}
         self.messages: dict[str, list[MessageRow]] = {}
-        self.recados: list[dict] = []
+        self.recados: list[dict[str, str | None]] = []
         self.consents: dict[str, datetime] = {}
-        self.consent_events: list[dict] = []
+        self.consent_events: list[dict[str, str]] = []
 
     def _names(self) -> dict[str, str]:
         names = {str(u["id"]): u["nome"] for u in data.USUARIOS}
@@ -72,12 +40,20 @@ class MemoryRepository:
         uid = parse_user_id(user_id)
         people = [
             Dependent(id=f"dep_{d['id']}", nome=d["nome"], tipo="pessoa", data_nascimento=d["data_nascimento"])
-            for d in data.DEPENDENTES if d["usuario_id"] == uid
+            for d in data.DEPENDENTES
+            if d["usuario_id"] == uid
         ]
         pets = [
-            Dependent(id=f"pet_{p['id']}", nome=p["nome"], tipo="pet", data_nascimento=p["data_nascimento"],
-                      especie=p["especie"], raca=p["raca"])
-            for p in data.PETS if p["usuario_id"] == uid
+            Dependent(
+                id=f"pet_{p['id']}",
+                nome=p["nome"],
+                tipo="pet",
+                data_nascimento=p["data_nascimento"],
+                especie=p["especie"],
+                raca=p["raca"],
+            )
+            for p in data.PETS
+            if p["usuario_id"] == uid
         ]
         return people + pets
 
@@ -89,10 +65,16 @@ class MemoryRepository:
             key = titular_key(d["titular_tipo"], d["titular_id"])
             if d["usuario_id"] != uid or (titular_id and key != titular_id):
                 continue
-            docs.append(RawDocument(
-                id=str(d["id"]), titular_id=key, titular_nome=names[key], tipo=d["tipo"],
-                validade=date.fromisoformat(d["validade"]) if d["validade"] else None, observacao=d["observacao"],
-            ))
+            docs.append(
+                RawDocument(
+                    id=str(d["id"]),
+                    titular_id=key,
+                    titular_nome=names[key],
+                    tipo=d["tipo"],
+                    validade=date.fromisoformat(d["validade"]) if d["validade"] else None,
+                    observacao=d["observacao"],
+                )
+            )
         return docs
 
     async def list_providers(self, filters: ProviderFilters) -> list[Provider]:
@@ -128,8 +110,9 @@ class MemoryRepository:
             self.consents.pop(user_id, None)
         else:
             self.consents[user_id] = granted_at
-        self.consent_events.append({"usuario_id": user_id, "acao": "concedido" if granted_at else "revogado",
-                                    "origem": origem})
+        self.consent_events.append(
+            {"usuario_id": user_id, "acao": "concedido" if granted_at else "revogado", "origem": origem}
+        )
 
     async def search_knowledge(self, embedding: list[float], k: int) -> list[str] | None:
         return None

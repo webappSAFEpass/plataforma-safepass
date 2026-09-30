@@ -40,13 +40,23 @@ async def test_plain_answer_without_tools(client, llm, repo):
 async def test_provider_search_returns_cards_and_intent(client, llm):
     conv = await start_conversation(client)
     llm.push(
-        completion(tool_calls=[tool_call("buscar_prestadores", {"categoria": "Médico", "especialidade": "Cardiologia", "cidade": "Brasília"})]),
+        completion(
+            tool_calls=[
+                tool_call(
+                    "buscar_prestadores", {"categoria": "Médico", "especialidade": "Cardiologia", "cidade": "Brasília"}
+                )
+            ]
+        ),
         completion("Encontrei a CardioVida em Brasília."),
     )
     body = (await client.post("/chat", headers=AUTH, json=chat_body(conv, "cardiologista em Brasília"))).json()
     assert body["debug"]["intent"] == "busca_prestadores"
-    assert body["debug"]["toolCalls"] == [{"name": "buscar_prestadores",
-                                           "args": {"categoria": "Médico", "especialidade": "Cardiologia", "cidade": "Brasília"}}]
+    assert body["debug"]["toolCalls"] == [
+        {
+            "name": "buscar_prestadores",
+            "args": {"categoria": "Médico", "especialidade": "Cardiologia", "cidade": "Brasília"},
+        }
+    ]
     assert body["cards"][0]["type"] == "providers"
     assert [p["nome"] for p in body["cards"][0]["data"]] == ["CardioVida"]
     assert body["cards"][0]["total"] == 1
@@ -63,7 +73,9 @@ async def test_private_data_requires_consent(client, llm):
         completion(tool_calls=[tool_call("consultar_documentos", {"nome_dependente": "Maria"})]),
         completion("Preciso da sua autorização para consultar esses dados."),
     )
-    body = (await client.post("/chat", headers=AUTH, json=chat_body(conv, "Mostre os dados da minha dependente Maria."))).json()
+    body = (
+        await client.post("/chat", headers=AUTH, json=chat_body(conv, "Mostre os dados da minha dependente Maria."))
+    ).json()
     assert [c["type"] for c in body["cards"]] == ["consent"]
     tool_result = json.loads(llm.requests[1]["messages"][-1]["content"])
     assert tool_result["erro"] == "consentimento_necessario"
@@ -74,8 +86,11 @@ async def test_private_data_requires_consent(client, llm):
         completion(tool_calls=[tool_call("consultar_documentos", {"nome_dependente": "Maria"})]),
         completion("A receita da Maria vence em breve."),
     )
-    body = (await client.post("/chat", headers=AUTH,
-                              json=chat_body(conv, "Mostre os dados da minha dependente Maria.", retry=True))).json()
+    body = (
+        await client.post(
+            "/chat", headers=AUTH, json=chat_body(conv, "Mostre os dados da minha dependente Maria.", retry=True)
+        )
+    ).json()
     docs = body["cards"][0]["data"]
     assert body["cards"][0]["type"] == "documents"
     assert {d["titularNome"] for d in docs} == {"Maria Souza"}
@@ -101,13 +116,15 @@ async def test_documents_of_third_party_refused(client, llm):
     )
     body = (await client.post("/chat", headers=AUTH, json=chat_body(conv, "documentos da Júlia Mendes"))).json()
     assert body["cards"] == []
-    assert json.loads(llm.requests[1]["messages"][-1]["content"])["erro"] == "sem permissão"
+    assert json.loads(llm.requests[1]["messages"][-1]["content"])["erro"] == "sem_permissao"
 
 
 async def test_revoke_consent_by_message(client, llm):
     conv = await start_conversation(client)
     await grant(client)
-    body = (await client.post("/chat", headers=AUTH, json=chat_body(conv, "Quero revogar consentimento de dados"))).json()
+    body = (
+        await client.post("/chat", headers=AUTH, json=chat_body(conv, "Quero revogar consentimento de dados"))
+    ).json()
     assert "revoguei" in body["reply"]
     assert llm.requests == []  # sem chamada ao LLM
     status = (await client.get("/consent", params={"userId": "1"}, headers=AUTH)).json()
@@ -120,13 +137,23 @@ async def test_whatsapp_fallback_after_hours_and_recado(client, llm, repo):
         completion(tool_calls=[tool_call("encaminhar_whatsapp", {"motivo": "estorno de consulta"})]),
         completion("Vou te encaminhar ao atendimento humano."),
     )
-    body = (await client.post("/chat", headers=AUTH, json=chat_body(
-        conv, "Quero pedir estorno financeiro de uma consulta não realizada.", simulateAfterHours=True))).json()
+    body = (
+        await client.post(
+            "/chat",
+            headers=AUTH,
+            json=chat_body(
+                conv, "Quero pedir estorno financeiro de uma consulta não realizada.", simulateAfterHours=True
+            ),
+        )
+    ).json()
     assert body["debug"]["intent"] == "fallback_whatsapp"
-    assert body["cards"][0] == {"type": "whatsapp", "data": {
-        "withinHours": False, "link": None, "message": body["cards"][0]["data"]["message"]}}
-    res = await client.post("/recados", headers=AUTH, json={
-        "userId": "1", "conversationId": conv, "mensagem": "Me liguem amanhã"})
+    assert body["cards"][0] == {
+        "type": "whatsapp",
+        "data": {"withinHours": False, "link": None, "message": body["cards"][0]["data"]["message"]},
+    }
+    res = await client.post(
+        "/recados", headers=AUTH, json={"userId": "1", "conversationId": conv, "mensagem": "Me liguem amanhã"}
+    )
     assert res.json() == {"ok": True} and repo.recados[-1]["mensagem"] == "Me liguem amanhã"
 
 
@@ -174,10 +201,22 @@ async def test_llm_error_returns_502(client, llm):
 async def test_stream_emits_tokens_cards_and_done(client, llm, repo):
     conv = await start_conversation(client)
     llm.push(
-        sse([{"tool_calls": [{"index": 0, "id": "call_9", "type": "function",
-                              "function": {"name": "buscar_prestadores", "arguments": ""}}]},
-             {"tool_calls": [{"index": 0, "function": {"arguments": '{"especialidade":'}}]},
-             {"tool_calls": [{"index": 0, "function": {"arguments": '"pediatria"}'}}]}]),
+        sse(
+            [
+                {
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "id": "call_9",
+                            "type": "function",
+                            "function": {"name": "buscar_prestadores", "arguments": ""},
+                        }
+                    ]
+                },
+                {"tool_calls": [{"index": 0, "function": {"arguments": '{"especialidade":'}}]},
+                {"tool_calls": [{"index": 0, "function": {"arguments": '"pediatria"}'}}]},
+            ]
+        ),
         sse([{"content": "Achei a "}, {"content": "Pediatria Sorriso."}]),
     )
     async with client.stream("POST", "/chat/stream", headers=AUTH, json=chat_body(conv, "pediatra")) as res:
@@ -193,10 +232,8 @@ async def test_stream_emits_tokens_cards_and_done(client, llm, repo):
     assert repo.messages[conv][-1].content == "Achei a Pediatria Sorriso."
 
 
-async def test_llm_not_configured_is_503(client, monkeypatch):
-    from app.main import app
-
-    monkeypatch.setattr(app.state.llm.settings, "llm_api_key", None)
+async def test_llm_not_configured_is_503(client, settings):
+    settings.llm_api_key = None
     conv = await start_conversation(client)
     res = await client.post("/chat", headers=AUTH, json=chat_body(conv, "oi"))
     assert res.status_code == 503
@@ -224,8 +261,9 @@ async def test_stream_error_event_is_retried_once(client, llm):
     import httpx
 
     conv = await start_conversation(client)
-    error = httpx.Response(200, text='data: {"error": {"code": "tool_use_failed"}}\n\n',
-                           headers={"content-type": "text/event-stream"})
+    error = httpx.Response(
+        200, text='data: {"error": {"code": "tool_use_failed"}}\n\n', headers={"content-type": "text/event-stream"}
+    )
     llm.push(error, sse([{"content": "Oi!"}]))
     async with client.stream("POST", "/chat/stream", headers=AUTH, json=chat_body(conv, "oi")) as res:
         raw = (await res.aread()).decode()
@@ -237,7 +275,9 @@ async def test_empty_turn_is_retried_then_falls_back(client, llm):
     llm.push(completion(""), completion("Resposta."))
     assert (await client.post("/chat", headers=AUTH, json=chat_body(conv, "oi"))).json()["reply"] == "Resposta."
     llm.push(completion(""), completion(""))
-    assert "atendimento humano" in (await client.post("/chat", headers=AUTH, json=chat_body(conv, "oi"))).json()["reply"]
+    assert (
+        "atendimento humano" in (await client.post("/chat", headers=AUTH, json=chat_body(conv, "oi"))).json()["reply"]
+    )
 
 
 def test_plain_text_strips_markdown():

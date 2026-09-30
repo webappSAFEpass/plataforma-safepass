@@ -17,8 +17,8 @@ import httpx
 
 from app.assistant.llm import LLMClient
 from app.assistant.prompt import knowledge_chunks
-from app.config import get_settings
-from app.repos.memory import plan_from_row
+from app.config import Settings
+from app.repos.mapping import plan_from_row
 from app.seed import documents
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -34,7 +34,7 @@ async def seed_documents(conn: asyncpg.Connection) -> None:
     usuarios = [r["id"] for r in await conn.fetch("select id from usuario")]
     deps = [(r["id"], r["usuario_id"]) for r in await conn.fetch("select id, usuario_id from dependente")]
     pets = [(r["id"], r["usuario_id"]) for r in await conn.fetch("select id, usuario_id from pet")]
-    rows = documents.generate(usuarios, deps, pets, get_settings().today())
+    rows = documents.generate(usuarios, deps, pets, Settings().today())
     async with conn.transaction():
         # Só os fictícios: documentos reais (OCR, Desafio 04) têm seed = false e nunca são tocados.
         await conn.execute("delete from documento where seed")
@@ -47,7 +47,7 @@ async def seed_documents(conn: asyncpg.Connection) -> None:
 
 
 async def ingest_kb(conn: asyncpg.Connection) -> None:
-    settings = get_settings()
+    settings = Settings()
     if not settings.embeddings_api_key:
         print("EMBEDDINGS_API_KEY ausente: pulando RAG (o assistente usa a base completa no prompt)")
         return
@@ -57,6 +57,8 @@ async def ingest_kb(conn: asyncpg.Connection) -> None:
         rows = []
         for categoria, conteudo in knowledge_chunks(plans):
             embedding = await llm.embed(conteudo)
+            if embedding is None:
+                sys.exit("EMBEDDINGS_API_KEY não retornou embedding.")
             rows.append((categoria, conteudo, "[" + ",".join(map(str, embedding)) + "]"))
     async with conn.transaction():
         await conn.execute("delete from knowledge_chunk")
@@ -70,13 +72,17 @@ DESTRUCTIVE = {"documents", "ingest-kb", "all"}
 
 
 async def main(command: str) -> None:
-    settings = get_settings()
+    settings = Settings()
     if not settings.database_url:
         sys.exit("Defina DATABASE_URL no .env (connection string do Supabase).")
     conn = await asyncpg.connect(settings.database_url, statement_cache_size=0)
     try:
-        steps = {"migrate": [migrate], "documents": [seed_documents], "ingest-kb": [ingest_kb],
-                 "all": [migrate, seed_documents, ingest_kb]}[command]
+        steps = {
+            "migrate": [migrate],
+            "documents": [seed_documents],
+            "ingest-kb": [ingest_kb],
+            "all": [migrate, seed_documents, ingest_kb],
+        }[command]
         for step in steps:
             await step(conn)
     finally:

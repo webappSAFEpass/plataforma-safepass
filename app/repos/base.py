@@ -1,27 +1,9 @@
-import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.contracts import Dependent, DocumentItem, Plan, Provider, ProviderFilters, UserProfile
-from app.services.text import document_status
-
-
-def titular_key(tipo: str, titular_id: int) -> str:
-    """Id público de quem é o documento: "12" (usuário), "dep_3" ou "pet_7"."""
-    return {"usuario": str(titular_id), "dependente": f"dep_{titular_id}", "pet": f"pet_{titular_id}"}[tipo]
-
-
-_USER_ID = re.compile(r"[1-9][0-9]{0,9}")
-PG_INT_MAX = 2_147_483_647
-
-
-def parse_user_id(user_id: str) -> int | None:
-    """"89" → 89. Rejeita dígitos Unicode ("²"), zeros à esquerda e valores fora do int4."""
-    if not _USER_ID.fullmatch(user_id):
-        return None
-    value = int(user_id)
-    return value if value <= PG_INT_MAX else None
+from app.domain.documents import document_status
 
 
 @dataclass
@@ -55,7 +37,7 @@ class MessageRow:
     role: str
     content: str
     intent: str | None = None
-    tool_calls: list[dict] | None = None
+    tool_calls: list[dict[str, Any]] | None = None
 
 
 class Repository(Protocol):

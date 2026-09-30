@@ -6,6 +6,9 @@ documentos válidos, vencendo (≤ 30 dias) e vencidos na demonstração.
 
 from datetime import date, timedelta
 
+# (usuario_id, titular_tipo, titular_id, tipo, validade, observacao)
+DocumentRow = tuple[int, str, int, str, date | None, str | None]
+
 PERSON_DOCS = ["CNH", "RG", "Carteirinha SAFEpass"]
 DEPENDENT_DOCS = ["RG", "Carteira de vacinação", "Receita de uso contínuo"]
 PET_DOCS = ["Carteira de vacinação do pet", "Atestado de saúde animal"]
@@ -21,17 +24,24 @@ def _validade(today: date, seed: int, always: bool = False) -> date | None:
     return today + timedelta(days=offset)
 
 
-def generate(usuarios: list[int], dependentes: list[tuple[int, int]], pets: list[tuple[int, int]],
-             today: date) -> list[tuple]:
-    """Linhas (usuario_id, titular_tipo, titular_id, tipo, validade, observacao)."""
-    rows: list[tuple] = []
+def generate(
+    usuarios: list[int], dependentes: list[tuple[int, int]], pets: list[tuple[int, int]], today: date
+) -> list[DocumentRow]:
+    """Linhas prontas para inserir em `documento`."""
+    rows: list[DocumentRow] = []
     for uid in usuarios:
         for i, tipo in enumerate(PERSON_DOCS[: 2 + uid % 2]):
-            rows.append((uid, "usuario", uid, tipo, _validade(today, uid + i * 2, always=tipo != "Carteirinha SAFEpass"), None))
+            rows.append(
+                (uid, "usuario", uid, tipo, _validade(today, uid + i * 2, always=tipo != "Carteirinha SAFEpass"), None)
+            )
     for dep_id, uid in dependentes:
         for i, tipo in enumerate(DEPENDENT_DOCS[: 1 + dep_id % 3]):
             validade = _validade(today, dep_id + i)
-            obs = f"Próxima dose em {(today + timedelta(days=15)).isoformat()}" if tipo == "Carteira de vacinação" else None
+            obs = (
+                f"Próxima dose em {(today + timedelta(days=15)).isoformat()}"
+                if tipo == "Carteira de vacinação"
+                else None
+            )
             rows.append((uid, "dependente", dep_id, tipo, None if obs else validade, obs))
     for pet_id, uid in pets:
         for i, tipo in enumerate(PET_DOCS[: 1 + pet_id % 2]):

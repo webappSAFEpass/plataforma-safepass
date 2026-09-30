@@ -1,12 +1,20 @@
 from datetime import date, datetime
-from functools import lru_cache
 from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Configuração da aplicação. Uma instância por app (create_app), guardada em app.state."""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # Rotas da API ficam sob este prefixo (o front usa BACKEND_API_URL=.../v1).
+    api_prefix: str = "/v1"
+    # /docs e /openapi.json só quando explicitamente ligados (fora de produção).
+    expose_docs: bool = False
+    log_json: bool = False
+    log_level: str = "INFO"
 
     # "token_a:89,token_b:*"  — cada token de serviço fica vinculado aos usuários que pode ler.
     # "*" libera qualquer usuário (use só para o servidor do app com sessão própria).
@@ -52,8 +60,3 @@ class Settings(BaseSettings):
 
     def today(self) -> date:
         return self.today_override or self.now().date()
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()

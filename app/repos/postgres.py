@@ -1,15 +1,37 @@
+import asyncio
 import json
 import time
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from typing import Any
 
 import asyncpg
 
 from app.contracts import Dependent, Plan, Provider, ProviderFilters, UserProfile
-from app.repos.base import Conversation, MessageRow, RawDocument, parse_user_id, titular_key
-from app.repos.memory import plan_from_row, profile_from_row, provider_from_row
-from app.services.text import filter_providers
+from app.domain.ids import parse_user_id, titular_key
+from app.repos.base import Conversation, MessageRow, RawDocument
+from app.repos.mapping import plan_from_row, profile_from_row, provider_from_row
+from app.services.search import filter_providers
 
-PROVIDERS_TTL_S = 300
+CATALOG_TTL_S = 300
+
+
+class _Cached[T]:
+    """Valor com TTL; o lock evita que requisições simultâneas recarreguem juntas na expiração."""
+
+    def __init__(self, loader: Callable[[], Awaitable[T]], ttl_s: float) -> None:
+        self._loader = loader
+        self._ttl_s = ttl_s
+        self._value: tuple[float, T] | None = None
+        self._lock = asyncio.Lock()
+
+    async def get(self) -> T:
+        if self._value and time.monotonic() - self._value[0] < self._ttl_s:
+            return self._value[1]
+        async with self._lock:
+            if not self._value or time.monotonic() - self._value[0] >= self._ttl_s:
+                self._value = (time.monotonic(), await self._loader())
+            return self._value[1]
 
 
 class PostgresRepository:
@@ -18,7 +40,9 @@ class PostgresRepository:
 
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
-        self._providers: tuple[float, list[Provider]] | None = None
+        # Catálogos pequenos e raramente alterados: planos (3) e prestadores (~500).
+        self._plans = _Cached(self._load_plans, CATALOG_TTL_S)
+        self._providers = _Cached(self._load_providers, CATALOG_TTL_S)
 
     @classmethod
     async def connect(cls, dsn: str) -> "PostgresRepository":
@@ -29,11 +53,20 @@ class PostgresRepository:
     async def close(self) -> None:
         await self.pool.close()
 
-    async def _plans_by_id(self) -> dict[int, dict]:
+    async def _load_plans(self) -> dict[int, dict[str, Any]]:
         return {r["id"]: dict(r) for r in await self.pool.fetch("select * from planos")}
 
+    async def _load_providers(self) -> list[Provider]:
+        rows = await self.pool.fetch(
+            "select id, nome, categoria, registro_profissional, telefone, descricao_atendimento,"
+            " tags_atendimento, modalidade_atendimento, localizacao_atendimento, faixa_preco,"
+            " avaliacao, qtd_avaliacoes from prestador"
+        )
+        return [provider_from_row(dict(r)) for r in rows]
+
     async def list_plans(self) -> list[Plan]:
-        return [plan_from_row(p) for p in sorted((await self._plans_by_id()).values(), key=lambda p: p["id"])]
+        plans = await self._plans.get()
+        return [plan_from_row(p) for p in sorted(plans.values(), key=lambda p: p["id"])]
 
     async def get_user(self, user_id: str) -> UserProfile | None:
         uid = parse_user_id(user_id)
@@ -43,7 +76,7 @@ class PostgresRepository:
             "select id, nome, endereco, possui_plano_saude, plano_saude, plano_safepass_id from usuario where id = $1",
             uid,
         )
-        return profile_from_row(dict(row), await self._plans_by_id()) if row else None
+        return profile_from_row(dict(row), await self._plans.get()) if row else None
 
     async def list_dependents(self, user_id: str) -> list[Dependent]:
         uid = parse_user_id(user_id)
@@ -56,13 +89,22 @@ class PostgresRepository:
             "select id, nome, data_nascimento, especie, raca from pet where usuario_id = $1 order by id", uid
         )
         return [
-            Dependent(id=f"dep_{r['id']}", nome=r["nome"], tipo="pessoa",
-                      data_nascimento=r["data_nascimento"].isoformat() if r["data_nascimento"] else None)
+            Dependent(
+                id=f"dep_{r['id']}",
+                nome=r["nome"],
+                tipo="pessoa",
+                data_nascimento=r["data_nascimento"].isoformat() if r["data_nascimento"] else None,
+            )
             for r in deps
         ] + [
-            Dependent(id=f"pet_{r['id']}", nome=r["nome"] or "Pet", tipo="pet",
-                      data_nascimento=r["data_nascimento"].isoformat() if r["data_nascimento"] else None,
-                      especie=r["especie"], raca=r["raca"])
+            Dependent(
+                id=f"pet_{r['id']}",
+                nome=r["nome"] or "Pet",
+                tipo="pet",
+                data_nascimento=r["data_nascimento"].isoformat() if r["data_nascimento"] else None,
+                especie=r["especie"],
+                raca=r["raca"],
+            )
             for r in pets
         ]
 
@@ -86,31 +128,31 @@ class PostgresRepository:
             uid,
         )
         docs = [
-            RawDocument(id=str(r["id"]), titular_id=titular_key(r["titular_tipo"], r["titular_id"]),
-                        titular_nome=r["titular_nome"] or "", tipo=r["tipo"], validade=r["validade"],
-                        observacao=r["observacao"])
+            RawDocument(
+                id=str(r["id"]),
+                titular_id=titular_key(r["titular_tipo"], r["titular_id"]),
+                titular_nome=r["titular_nome"] or "",
+                tipo=r["tipo"],
+                validade=r["validade"],
+                observacao=r["observacao"],
+            )
             for r in rows
         ]
         return [d for d in docs if titular_id is None or d.titular_id == titular_id]
 
     async def list_providers(self, filters: ProviderFilters) -> list[Provider]:
-        # 500 prestadores: cache curto em memória + filtro tolerante em Python
-        # (mesma lógica do modo memória). Catálogo grande → SQL com unaccent/pg_trgm.
-        if self._providers is None or time.monotonic() - self._providers[0] > PROVIDERS_TTL_S:
-            rows = await self.pool.fetch(
-                "select id, nome, categoria, registro_profissional, telefone, descricao_atendimento,"
-                " tags_atendimento, modalidade_atendimento, localizacao_atendimento, faixa_preco,"
-                " avaliacao, qtd_avaliacoes from prestador"
-            )
-            self._providers = (time.monotonic(), [provider_from_row(dict(r)) for r in rows])
-        return filter_providers(self._providers[1], filters)
+        # Filtro tolerante em Python (mesma lógica do modo memória). Catálogo grande → SQL com unaccent/pg_trgm.
+        return filter_providers(await self._providers.get(), filters)
 
     async def create_lead(self, user_id: str, nome: str, telefone: str, mensagem: str) -> tuple[str, str]:
         uid = parse_user_id(user_id)
         async with self.pool.acquire() as conn, conn.transaction():
             lead_id = await conn.fetchval(
                 "insert into lead (usuario_id, nome, telefone, mensagem_inicial) values ($1, $2, $3, $4) returning id",
-                uid, nome, telefone, mensagem,
+                uid,
+                nome,
+                telefone,
+                mensagem,
             )
             conversation_id = await conn.fetchval(
                 "insert into conversa (lead_id, usuario_id) values ($1, $2) returning id", lead_id, uid
@@ -134,8 +176,13 @@ class PostgresRepository:
             "insert into mensagem (conversa_id, role, content, intent, tool_calls)"
             " values ($1::uuid, $2, $3, $4, $5::jsonb)",
             [
-                (conversation_id, r.role, r.content, r.intent,
-                 json.dumps(r.tool_calls, ensure_ascii=False) if r.tool_calls is not None else None)
+                (
+                    conversation_id,
+                    r.role,
+                    r.content,
+                    r.intent,
+                    json.dumps(r.tool_calls, ensure_ascii=False) if r.tool_calls is not None else None,
+                )
                 for r in rows
             ],
         )
@@ -143,14 +190,16 @@ class PostgresRepository:
     async def create_recado(self, conversation_id: str, mensagem: str) -> None:
         await self.pool.execute(
             "insert into recado (lead_id, mensagem) values ((select lead_id from conversa where id = $1::uuid), $2)",
-            conversation_id, mensagem,
+            conversation_id,
+            mensagem,
         )
 
     async def get_consent(self, user_id: str) -> datetime | None:
-        return await self.pool.fetchval(
+        granted_at: datetime | None = await self.pool.fetchval(
             "select concedido_em from consentimento where usuario_id = $1 and revogado_em is null",
             parse_user_id(user_id),
         )
+        return granted_at
 
     async def set_consent(self, user_id: str, granted_at: datetime | None, origem: str) -> None:
         uid = parse_user_id(user_id)
@@ -162,12 +211,18 @@ class PostgresRepository:
             else:
                 await conn.execute(
                     """insert into consentimento (usuario_id, concedido_em) values ($1, $2)
-                       on conflict (usuario_id) do update set concedido_em = excluded.concedido_em, revogado_em = null""",
-                    uid, granted_at,
+                       on conflict (usuario_id)
+                       do update set concedido_em = excluded.concedido_em, revogado_em = null""",
+                    uid,
+                    granted_at,
                 )
             await conn.execute(
-                "insert into consentimento_evento (usuario_id, acao, origem, ocorrido_em) values ($1, $2, $3, coalesce($4, now()))",
-                uid, "concedido" if granted_at else "revogado", origem, granted_at,
+                "insert into consentimento_evento (usuario_id, acao, origem, ocorrido_em)"
+                " values ($1, $2, $3, coalesce($4, now()))",
+                uid,
+                "concedido" if granted_at else "revogado",
+                origem,
+                granted_at,
             )
             # Mantém a coluna do squad em sincronia com o consentimento registrado.
             await conn.execute(
@@ -178,14 +233,17 @@ class PostgresRepository:
         rows = await self.pool.fetch(
             "select role, content from (select role, content, created_at from mensagem where conversa_id = $1::uuid"
             " order by created_at desc limit $2) m order by created_at",
-            conversation_id, limit,
+            conversation_id,
+            limit,
         )
         return [MessageRow(role=r["role"], content=r["content"]) for r in rows]
 
     async def search_knowledge(self, embedding: list[float], k: int) -> list[str] | None:
         vector = "[" + ",".join(f"{x:.7f}" for x in embedding) + "]"
         rows = await self.pool.fetch(
-            "select conteudo from knowledge_chunk where embedding is not null order by embedding <=> $1::vector limit $2",
-            vector, k,
+            "select conteudo from knowledge_chunk where embedding is not null"
+            " order by embedding <=> $1::vector limit $2",
+            vector,
+            k,
         )
         return [r["conteudo"] for r in rows] or None

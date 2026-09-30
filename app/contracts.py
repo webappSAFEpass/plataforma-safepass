@@ -4,7 +4,7 @@ Modelados a partir das tabelas reais do Supabase (usuario, dependente, pet, plan
 Dados sensíveis (CPF, e-mail, endereço completo) nunca saem do backend.
 """
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -134,9 +134,7 @@ class ConsentCard(Model):
     data: ConsentData
 
 
-Card = Annotated[
-    ProvidersCard | DocumentsCard | WhatsappCard | ConsentCard, Field(discriminator="type")
-]
+Card = Annotated[ProvidersCard | DocumentsCard | WhatsappCard | ConsentCard, Field(discriminator="type")]
 
 
 # ---- Assistente ----
@@ -165,7 +163,7 @@ class ChatRequest(Model):
 
 class ToolCallLog(Model):
     name: str
-    args: dict
+    args: dict[str, Any]
 
 
 class ChatDebug(Model):
@@ -190,6 +188,10 @@ class LeadRequest(Model):
 class LeadResponse(Model):
     lead_id: str
     conversation_id: str
+
+
+class OkResponse(Model):
+    ok: bool = True
 
 
 class RecadoRequest(Model):
