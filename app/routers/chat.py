@@ -15,6 +15,7 @@ from app.assistant.loop import Assistant, CardEvent, Done, Reset, Token, consent
 from app.config import Settings
 from app.contracts import (
     USER_ID_PATTERN,
+    AtendimentoInfo,
     ChatMessage,
     ChatRequest,
     ChatResponse,
@@ -210,6 +211,15 @@ async def chat_stream(
 
     return StreamingResponse(
         generate(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
+@router.get("/atendimento")
+async def get_atendimento(_: ScopeDep, rules: RulesDep) -> AtendimentoInfo:
+    """Para o front mostrar o horário sem duplicar a regra (ex.: no aviso de recado quando a IA falha)."""
+    return AtendimentoInfo(
+        horario=rules.horario_atendimento(),
+        mensagem_fora_do_horario=rules.render(rules.atendimento_humano.mensagem_fora_do_horario),
     )
 
 

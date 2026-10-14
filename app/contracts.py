@@ -33,7 +33,11 @@ ConversationId = Annotated[str, Field(pattern=UUID_PATTERN)]
 
 
 class Model(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    # Campos com default saem como obrigatórios no schema de resposta: o backend sempre os envia,
+    # e o front gera tipos sem `?` (ex.: o `type` dos cards, que discrimina a união).
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, json_schema_serialization_defaults_required=True
+    )
 
 
 class Plan(Model):
@@ -200,6 +204,13 @@ class RecadoRequest(Model):
     user_id: UserId
     conversation_id: ConversationId
     mensagem: str = Field(min_length=1, max_length=4000)
+
+
+class AtendimentoInfo(Model):
+    """Horário do atendimento humano, vindo das regras da PO (o front não guarda essa regra)."""
+
+    horario: str
+    mensagem_fora_do_horario: str
 
 
 class ConsentRequest(Model):

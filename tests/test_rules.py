@@ -19,7 +19,7 @@ from app.repos.memory import MemoryRepository
 from app.rules import DEFAULT_PATH, BusinessRules
 from app.services.search import filter_providers
 from scripts.regras import SCHEMA_PATH, schema_text
-from tests.conftest import RULES, make_settings
+from tests.conftest import AUTH, RULES, make_settings
 
 TZ = ZoneInfo("America/Sao_Paulo")
 RAW: dict[str, Any] = json.loads(DEFAULT_PATH.read_text(encoding="utf-8"))
@@ -186,3 +186,12 @@ async def test_stale_rag_index_falls_back_to_current_rules(monkeypatch, rules):
 def test_schema_file_matches_the_rules_model():
     """O schema que o editor usa para validar o JSON precisa estar em dia: `python -m scripts.regras schema`."""
     assert SCHEMA_PATH.read_text(encoding="utf-8") == schema_text()
+
+
+async def test_atendimento_endpoint_serves_the_rules(client):
+    res = await client.get("/atendimento", headers=AUTH)
+    assert res.json() == {
+        "horario": "segunda a sexta, das 8h às 18h",
+        "mensagemForaDoHorario": RULES.render(RULES.atendimento_humano.mensagem_fora_do_horario),
+    }
+    assert (await client.get("/atendimento")).status_code == 401

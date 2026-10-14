@@ -461,6 +461,33 @@
         ]
       }
     },
+    "/v1/atendimento": {
+      "get": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Get Atendimento",
+        "description": "Para o front mostrar o horário sem duplicar a regra (ex.: no aviso de recado quando a IA falha).",
+        "operationId": "get_atendimento_v1_atendimento_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtendimentoInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/recados": {
       "post": {
         "tags": [
@@ -602,6 +629,25 @@
   },
   "components": {
     "schemas": {
+      "AtendimentoInfo": {
+        "properties": {
+          "horario": {
+            "type": "string",
+            "title": "Horario"
+          },
+          "mensagemForaDoHorario": {
+            "type": "string",
+            "title": "Mensagemforadohorario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "horario",
+          "mensagemForaDoHorario"
+        ],
+        "title": "AtendimentoInfo",
+        "description": "Horário do atendimento humano, vindo das regras da PO (o front não guarda essa regra)."
+      },
       "ChatDebug": {
         "properties": {
           "intent": {
@@ -776,6 +822,7 @@
         },
         "type": "object",
         "required": [
+          "type",
           "data"
         ],
         "title": "ConsentCard"
@@ -847,7 +894,9 @@
         },
         "type": "object",
         "required": [
-          "granted"
+          "granted",
+          "grantedAt",
+          "expiresAt"
         ],
         "title": "ConsentStatus"
       },
@@ -908,7 +957,9 @@
           "id",
           "nome",
           "tipo",
-          "dataNascimento"
+          "dataNascimento",
+          "especie",
+          "raca"
         ],
         "title": "Dependent"
       },
@@ -980,6 +1031,7 @@
         },
         "type": "object",
         "required": [
+          "type",
           "data"
         ],
         "title": "DocumentsCard"
@@ -1080,6 +1132,9 @@
           }
         },
         "type": "object",
+        "required": [
+          "ok"
+        ],
         "title": "OkResponse"
       },
       "Plan": {
@@ -1327,6 +1382,7 @@
         },
         "type": "object",
         "required": [
+          "type",
           "data",
           "total"
         ],
@@ -1501,6 +1557,7 @@
         },
         "type": "object",
         "required": [
+          "type",
           "data"
         ],
         "title": "WhatsappCard"
@@ -1530,6 +1587,7 @@
         "type": "object",
         "required": [
           "withinHours",
+          "link",
           "message"
         ],
         "title": "WhatsappData"
