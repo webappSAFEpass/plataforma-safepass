@@ -5,7 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from app.assistant.fallback import resolve_whatsapp, within_business_hours
-from tests.conftest import AUTH, chat_body, completion, sse, start_conversation, tool_call
+from tests.conftest import AUTH, RULES, chat_body, completion, sse, start_conversation, tool_call
 
 TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -159,10 +159,10 @@ async def test_whatsapp_fallback_after_hours_and_recado(client, llm, repo):
 
 def test_whatsapp_link_within_hours_has_summary_and_user_id():
     monday_10h = datetime(2026, 9, 28, 10, tzinfo=TZ)
-    assert within_business_hours(monday_10h)
-    assert not within_business_hours(datetime(2026, 9, 27, 10, tzinfo=TZ))  # domingo
-    assert not within_business_hours(datetime(2026, 9, 28, 18, tzinfo=TZ))
-    data = resolve_whatsapp("estorno", "Ana", "1", monday_10h, "5561999999999")
+    assert within_business_hours(monday_10h, RULES)
+    assert not within_business_hours(datetime(2026, 9, 27, 10, tzinfo=TZ), RULES)  # domingo
+    assert not within_business_hours(datetime(2026, 9, 28, 18, tzinfo=TZ), RULES)
+    data = resolve_whatsapp("estorno", "Ana", "1", monday_10h, RULES)
     assert data.within_hours and data.link.startswith("https://wa.me/5561999999999?text=")
     assert "ID 1" in data.message and "estorno" in data.message
 
@@ -288,11 +288,11 @@ def test_plain_text_strips_markdown():
 
 def test_whatsapp_simulations_force_either_flow():
     sunday_3am = datetime(2026, 9, 27, 3, tzinfo=TZ)
-    assert not resolve_whatsapp("x", "Ana", "1", sunday_3am, "5561999999999").within_hours
-    forced = resolve_whatsapp("x", "Ana", "1", sunday_3am, "5561999999999", simulate_within_hours=True)
+    assert not resolve_whatsapp("x", "Ana", "1", sunday_3am, RULES).within_hours
+    forced = resolve_whatsapp("x", "Ana", "1", sunday_3am, RULES, simulate_within_hours=True)
     assert forced.within_hours and forced.link
     monday_10h = datetime(2026, 9, 28, 10, tzinfo=TZ)
-    both = resolve_whatsapp("x", "Ana", "1", monday_10h, "5561", simulate_after_hours=True, simulate_within_hours=True)
+    both = resolve_whatsapp("x", "Ana", "1", monday_10h, RULES, simulate_after_hours=True, simulate_within_hours=True)
     assert not both.within_hours  # "fora do horário" vence
 
 

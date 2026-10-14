@@ -1,0 +1,1545 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SAFEpass Backend",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/plans": {
+      "get": {
+        "tags": [
+          "dados"
+        ],
+        "summary": "List Plans",
+        "operationId": "list_plans_v1_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Plan"
+                  },
+                  "type": "array",
+                  "title": "Response List Plans V1 Plans Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/account/{userId}": {
+      "get": {
+        "tags": [
+          "dados"
+        ],
+        "summary": "Get Account",
+        "operationId": "get_account_v1_account__userId__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,9}$",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dependents": {
+      "get": {
+        "tags": [
+          "dados"
+        ],
+        "summary": "List Dependents",
+        "operationId": "list_dependents_v1_dependents_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,9}$",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Dependent"
+                  },
+                  "title": "Response List Dependents V1 Dependents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents": {
+      "get": {
+        "tags": [
+          "dados"
+        ],
+        "summary": "List Documents",
+        "operationId": "list_documents_v1_documents_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,9}$",
+              "title": "Userid"
+            }
+          },
+          {
+            "name": "dependentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^([1-9][0-9]{0,9}|dep_[0-9]{1,10}|pet_[0-9]{1,10})$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dependentid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentItem"
+                  },
+                  "title": "Response List Documents V1 Documents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/providers": {
+      "get": {
+        "tags": [
+          "dados"
+        ],
+        "summary": "List Providers",
+        "operationId": "list_providers_v1_providers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "categoria",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Categoria"
+            }
+          },
+          {
+            "name": "especialidade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Especialidade"
+            }
+          },
+          {
+            "name": "cidade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cidade"
+            }
+          },
+          {
+            "name": "modalidade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "presencial",
+                    "online"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Modalidade"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Provider"
+                  },
+                  "title": "Response List Providers V1 Providers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leads": {
+      "post": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Create Lead",
+        "operationId": "create_lead_v1_leads_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/chat": {
+      "post": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Chat",
+        "operationId": "chat_v1_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/chat/stream": {
+      "post": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Chat Stream",
+        "description": "SSE: `token` (pedaço de texto), `reset` (descartar o texto já recebido), `card` (Card),\n`done` (ChatResponse final — o front deve exibir `reply` dele), `error`.",
+        "operationId": "chat_stream_v1_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/recados": {
+      "post": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Create Recado",
+        "operationId": "create_recado_v1_recados_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecadoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/consent": {
+      "get": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Get Consent",
+        "operationId": "get_consent_v1_consent_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,9}$",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "assistente"
+        ],
+        "summary": "Set Consent",
+        "operationId": "set_consent_v1_consent_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatDebug": {
+        "properties": {
+          "intent": {
+            "type": "string",
+            "enum": [
+              "duvida_plataforma",
+              "consulta_conta",
+              "consulta_dependentes",
+              "consulta_documentos",
+              "busca_prestadores",
+              "fallback_whatsapp",
+              "conversa_geral"
+            ],
+            "title": "Intent"
+          },
+          "toolCalls": {
+            "items": {
+              "$ref": "#/components/schemas/ToolCallLog"
+            },
+            "type": "array",
+            "title": "Toolcalls"
+          },
+          "latencyMs": {
+            "type": "integer",
+            "title": "Latencyms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intent",
+          "toolCalls",
+          "latencyMs"
+        ],
+        "title": "ChatDebug"
+      },
+      "ChatMessage": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage"
+      },
+      "ChatRequest": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,9}$",
+            "title": "Userid"
+          },
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+            "title": "Conversationid"
+          },
+          "lead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Lead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Messages"
+          },
+          "simulateAfterHours": {
+            "type": "boolean",
+            "title": "Simulateafterhours",
+            "default": false
+          },
+          "simulateWithinHours": {
+            "type": "boolean",
+            "title": "Simulatewithinhours",
+            "default": false
+          },
+          "retry": {
+            "type": "boolean",
+            "title": "Retry",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "userId",
+          "conversationId",
+          "messages"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatResponse": {
+        "properties": {
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "cards": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ProvidersCard"
+                },
+                {
+                  "$ref": "#/components/schemas/DocumentsCard"
+                },
+                {
+                  "$ref": "#/components/schemas/WhatsappCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ConsentCard"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "consent": "#/components/schemas/ConsentCard",
+                  "documents": "#/components/schemas/DocumentsCard",
+                  "providers": "#/components/schemas/ProvidersCard",
+                  "whatsapp": "#/components/schemas/WhatsappCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Cards"
+          },
+          "debug": {
+            "$ref": "#/components/schemas/ChatDebug"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reply",
+          "cards",
+          "debug"
+        ],
+        "title": "ChatResponse"
+      },
+      "ConsentCard": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "consent",
+            "title": "Type",
+            "default": "consent"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConsentData"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ConsentCard"
+      },
+      "ConsentData": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ConsentData"
+      },
+      "ConsentRequest": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,9}$",
+            "title": "Userid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "grant",
+              "revoke"
+            ],
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "userId",
+          "action"
+        ],
+        "title": "ConsentRequest"
+      },
+      "ConsentStatus": {
+        "properties": {
+          "granted": {
+            "type": "boolean",
+            "title": "Granted"
+          },
+          "grantedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grantedat"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "granted"
+        ],
+        "title": "ConsentStatus"
+      },
+      "Dependent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "pessoa",
+              "pet"
+            ],
+            "title": "Tipo"
+          },
+          "dataNascimento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datanascimento"
+          },
+          "especie": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Especie"
+          },
+          "raca": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raca"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "tipo",
+          "dataNascimento"
+        ],
+        "title": "Dependent"
+      },
+      "DocumentItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "titularId": {
+            "type": "string",
+            "title": "Titularid"
+          },
+          "titularNome": {
+            "type": "string",
+            "title": "Titularnome"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "validade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "valido",
+              "vencendo",
+              "vencido"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "titularId",
+          "titularNome",
+          "tipo",
+          "validade",
+          "status"
+        ],
+        "title": "DocumentItem"
+      },
+      "DocumentsCard": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "documents",
+            "title": "Type",
+            "default": "documents"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentItem"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "DocumentsCard"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Lead": {
+        "properties": {
+          "nome": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Nome"
+          },
+          "telefone": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Telefone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nome",
+          "telefone"
+        ],
+        "title": "Lead"
+      },
+      "LeadRequest": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,9}$",
+            "title": "Userid"
+          },
+          "nome": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Nome"
+          },
+          "telefone": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 8,
+            "title": "Telefone"
+          },
+          "mensagem": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Mensagem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "userId",
+          "nome",
+          "telefone",
+          "mensagem"
+        ],
+        "title": "LeadRequest"
+      },
+      "LeadResponse": {
+        "properties": {
+          "leadId": {
+            "type": "string",
+            "title": "Leadid"
+          },
+          "conversationId": {
+            "type": "string",
+            "title": "Conversationid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "leadId",
+          "conversationId"
+        ],
+        "title": "LeadResponse"
+      },
+      "OkResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "OkResponse"
+      },
+      "Plan": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "free",
+              "aura",
+              "aura_plus"
+            ],
+            "title": "Id"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "valor": {
+            "type": "number",
+            "title": "Valor"
+          },
+          "qtdDependentes": {
+            "type": "integer",
+            "title": "Qtddependentes"
+          },
+          "qtdAvaliacoesMes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qtdavaliacoesmes"
+          },
+          "acessoCupom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acessocupom"
+          },
+          "acumuloPonto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acumuloponto"
+          },
+          "historicoSaude": {
+            "type": "boolean",
+            "title": "Historicosaude"
+          },
+          "cartaoFisicoBeneficios": {
+            "type": "boolean",
+            "title": "Cartaofisicobeneficios"
+          },
+          "checkupGratuito": {
+            "type": "boolean",
+            "title": "Checkupgratuito"
+          },
+          "desconto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desconto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "valor",
+          "qtdDependentes",
+          "qtdAvaliacoesMes",
+          "acessoCupom",
+          "acumuloPonto",
+          "historicoSaude",
+          "cartaoFisicoBeneficios",
+          "checkupGratuito",
+          "desconto"
+        ],
+        "title": "Plan"
+      },
+      "Provider": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "categoria": {
+            "type": "string",
+            "title": "Categoria"
+          },
+          "registroProfissional": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registroprofissional"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "localizacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Localizacao"
+          },
+          "faixaPreco": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faixapreco"
+          },
+          "avaliacao": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avaliacao"
+          },
+          "qtdAvaliacoes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qtdavaliacoes"
+          },
+          "telefone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "categoria",
+          "registroProfissional",
+          "descricao",
+          "tags",
+          "modalidade",
+          "localizacao",
+          "faixaPreco",
+          "avaliacao",
+          "qtdAvaliacoes",
+          "telefone"
+        ],
+        "title": "Provider"
+      },
+      "ProvidersCard": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "providers",
+            "title": "Type",
+            "default": "providers"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Provider"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total"
+        ],
+        "title": "ProvidersCard"
+      },
+      "RecadoRequest": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,9}$",
+            "title": "Userid"
+          },
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+            "title": "Conversationid"
+          },
+          "mensagem": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Mensagem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "userId",
+          "conversationId",
+          "mensagem"
+        ],
+        "title": "RecadoRequest"
+      },
+      "ToolCallLog": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "args": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Args"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "args"
+        ],
+        "title": "ToolCallLog"
+      },
+      "UserProfile": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "plano": {
+            "type": "string",
+            "enum": [
+              "free",
+              "aura",
+              "aura_plus"
+            ],
+            "title": "Plano"
+          },
+          "planoNome": {
+            "type": "string",
+            "title": "Planonome"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "possuiPlanoSaude": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Possuiplanosaude"
+          },
+          "planoSaude": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planosaude"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "plano",
+          "planoNome",
+          "uf",
+          "possuiPlanoSaude",
+          "planoSaude"
+        ],
+        "title": "UserProfile"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WhatsappCard": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "whatsapp",
+            "title": "Type",
+            "default": "whatsapp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WhatsappData"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "WhatsappCard"
+      },
+      "WhatsappData": {
+        "properties": {
+          "withinHours": {
+            "type": "boolean",
+            "title": "Withinhours"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "withinHours",
+          "message"
+        ],
+        "title": "WhatsappData"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

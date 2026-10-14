@@ -10,6 +10,10 @@ Browser ─> Next.js (app/api/* — guarda o token) ─> FastAPI ─┬─> Post
                                                              └─> LLM compatível com OpenAI
 ```
 
+## Regras de negócio
+
+Horário do atendimento humano, número do WhatsApp, prazo de alerta de documentos, validade do consentimento, mensagens fixas, base de conhecimento e vocabulário da busca ficam em [`regras/regras-negocio.json`](regras/README.md). A PO edita esse arquivo por PR, o CI valida, e o backend não sobe com regra inválida. O guia de edição está em `regras/README.md`.
+
 ## Dados
 
 A fonte da verdade são as tabelas do squad no Supabase: `usuario`, `dependente`, `pet`, `planos` e `prestador`. O backend **só lê** essas tabelas, com uma exceção: `usuario.permissao_assistente`, que ele mantém em sincronia com o consentimento. As tabelas próprias do assistente são criadas por `migrations/001_init.sql`:
@@ -48,6 +52,8 @@ make run                                  # http://localhost:8000/v1  (health: /
 | `make test-pg` | sobe um Postgres local descartável (`.pgtest/`) e roda também o contrato do repositório nele |
 | `make test-live` | matriz de QA do PDF contra o LLM real (~4 min: a Groq gratuita tem limite de 8k tokens/min) |
 | `make lock` | regenera o `requirements.txt` com hashes a partir do `requirements.in` |
+| `make regras` | valida `regras/regras-negocio.json` (também roda no CI) |
+| `make openapi` | regera o `openapi.json` (contrato para o front) |
 
 O CI (`.github/workflows/ci.yml`) roda lint, mypy e todos os testes contra `pgvector/pgvector:pg17`, incluindo a busca vetorial. Ele também confere se o lockfile está atualizado.
 
@@ -61,6 +67,7 @@ Na demo com o Supabase, a sessão usa o usuário **89**: plano Aura+, DF, 2 depe
 app/
   main.py            create_app(settings): rotas sob /v1, handlers de erro {error}, request id, /health, /ready
   config.py          Settings (uma instância por app, em app.state)
+  rules.py           regras de negócio da PO: modelo, validação e marcadores de regras/regras-negocio.json
   deps.py            dependências tipadas (RepoDep, LLMDep, ScopeDep, SettingsDep) + known_user
   security.py        token de serviço com escopo de usuários
   observability.py   logs em texto ou JSON com request_id; nada de corpo, query ou PII
@@ -71,6 +78,9 @@ app/
   repos/             base.py (Protocol), memory.py, postgres.py, mapping.py (linha → modelo)
   services/          search.py (busca tolerante), text.py (normalização e higienização), ratelimit.py
 migrations/          001 (tabelas do assistente + RLS) e 002 (auditoria LGPD, retenção, seed)
+regras/              regras-negocio.json (editável pela PO), schema e guia de edição
+scripts/             db.py (migrações, seed, RAG), regras.py (check/schema), openapi.py (contrato)
+openapi.json         contrato da API para o front gerar os tipos (make openapi)
 tests/               contrato do repositório (memória e Postgres), API, assistente, hardening, live
 ```
 
@@ -137,14 +147,15 @@ Erros sempre em `{"error": "mensagem"}`:
 - **Ferramentas** (`app/assistant/tools.py`): `consultar_base_conhecimento`, `consultar_minha_conta`, `consultar_dependentes`, `consultar_documentos`, `buscar_prestadores` e `encaminhar_whatsapp`. São no máximo 3 rodadas de ferramentas, e a última chamada ao LLM vai sem tools.
 - **LGPD**:
   - As três ferramentas de dados pessoais exigem consentimento ativo. Sem ele, o assistente devolve um card `consent` e não lê nada.
-  - O consentimento vale 12 meses a partir de `POST /consent`.
+  - O consentimento vale `consentimento.validade_dias` (365) a partir de `POST /consent`.
   - Uma mensagem com "revogar consentimento" revoga na hora, sem chamar o LLM.
 - **Privacidade**: nomes de pessoas fora da família são recusados, e a busca por nome acontece só entre o titular e os dependentes dele.
 - **Guardrails** (prompt): proíbe diagnóstico e prescrição e bloqueia remédio sem receita. Em emergência, orienta ligar para SAMU 192 ou Bombeiros 193. Resiste a prompt injection e a pedidos de cupom grátis. Pedidos financeiros vão para o atendimento humano.
 - **WhatsApp**:
-  - Dentro do horário (seg–sex, 8h–18h, Brasília), gera um link `wa.me` com o resumo e o ID do usuário.
+  - Dentro do horário (`atendimento_humano` nas regras; hoje seg–sex, 8h–18h, Brasília), gera um link `wa.me` com o resumo e o ID do usuário.
   - Fora do horário, mostra o formulário de recado. `simulateAfterHours` força esse caso.
-- **Base de conhecimento**: os planos são gerados a partir da tabela `planos`, e as regras gerais (carência, pagamento, horário etc.) estão em `app/assistant/prompt.py`.
+- **Base de conhecimento**: os planos são gerados a partir da tabela `planos`, e as regras gerais (carência, pagamento, horário etc.) estão em `regras/regras-negocio.json`.
+  - Se o índice vetorial não bate com a base atual (a PO mudou uma regra e ninguém rodou `ingest-kb`), o assistente usa a base inteira, nunca o texto antigo.
   - Com Postgres e `EMBEDDINGS_API_KEY`, entram os 3 trechos mais próximos por cosseno (`text-embedding-3-small`).
   - Sem isso, entra a base inteira, que é pequena.
 - **Robustez**:
@@ -169,6 +180,6 @@ Funciona com qualquer API compatível com OpenAI. `LLM_BASE_URL` é a base (`...
 - O usuário da sessão é fixo (`SESSION_USER_ID=89` no front) até a integração com o login do Desafio 01.
 - A Groq gratuita aguenta de 2 a 3 perguntas por minuto. Para a apresentação, considere uma chave paga (Groq Dev tier ou OpenAI).
 - O filtro de prestadores roda em Python sobre os 500 registros, com cache de 5 minutos. Para um catálogo grande, mover para SQL com `unaccent`/`pg_trgm`.
-- As regras gerais da base de conhecimento (carência de 7 dias, formas de pagamento, dependentes aceitos) vieram do briefing e não estão em nenhuma tabela. Confirme com o negócio.
+- As regras gerais da base de conhecimento (carência de 7 dias, formas de pagamento, dependentes aceitos) vieram do briefing. Agora ficam em `regras/regras-negocio.json`; confirme os valores com a PO.
 - Anexos do chat não são enviados ao backend. Só o nome do arquivo aparece na conversa.
-- Não há rate limiting no backend. Corpo do chat: até 50 mensagens de 4.000 caracteres cada.
+- O limite de 12 mensagens por minuto por conversa fica em memória: com várias réplicas, mover para Redis. Corpo do chat: até 50 mensagens de 4.000 caracteres cada.

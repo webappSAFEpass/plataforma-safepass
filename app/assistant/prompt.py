@@ -1,39 +1,10 @@
 """System prompt e base de conhecimento.
 
-Os planos vêm da tabela `planos` (fonte oficial); as regras gerais abaixo são do briefing/PDF do MVP.
+Os planos vêm da tabela `planos` (fonte oficial); as regras gerais, de regras/regras-negocio.json (PO).
 """
 
 from app.contracts import Plan
-
-# Regras institucionais (sem preços — preços e benefícios vêm da tabela de planos).
-GENERAL_RULES: list[tuple[str, str]] = [
-    (
-        "institutional",
-        "O SAFEpass NÃO é plano de saúde; é um clube de benefícios e descontos em saúde e bem-estar, para o titular, seus dependentes e pets vinculados ao plano.",
-    ),
-    (
-        "plan_rules",
-        "Carência de 7 dias para usar os benefícios após a contratação. Troca de plano a qualquer momento; o novo valor vale no próximo ciclo. Cancelamento sem multa, a qualquer momento, pelo app.",
-    ),
-    ("plan_rules", "Pagamento por cartão de crédito, Pix ou boleto."),
-    (
-        "plan_rules",
-        "Dependentes aceitos: cônjuge, filhos (até 24 anos), pais e sogros. Pets (cães e gatos) também podem ser vinculados ao plano.",
-    ),
-    (
-        "benefits",
-        "Pontos viram cupons no marketplace; cada cupom gera um token validado pelo prestador no atendimento. A forma de acúmulo de pontos depende do plano.",
-    ),
-    ("benefits", "Documentos enviados passam por OCR e geram alertas 30 dias antes do vencimento."),
-    (
-        "support",
-        "Para revogar a autorização de uso dos dados pelo assistente, basta enviar a mensagem: Revogar consentimento de dados.",
-    ),
-    (
-        "support",
-        "Atendimento humano via WhatsApp de segunda a sexta, das 8h às 18h (horário de Brasília). Fora do horário, é possível deixar um recado.",
-    ),
-]
+from app.rules import BusinessRules
 
 RAG_INSTRUCTION = (
     "Responda à dúvida do usuário APENAS com o CONTEXTO abaixo. Não invente informações. "
@@ -59,12 +30,13 @@ def plan_chunk(p: Plan) -> str:
     return f"Plano {p.nome} — {_money(p.valor)}; " + "; ".join(e for e in extras if e) + "."
 
 
-def knowledge_chunks(plans: list[Plan]) -> list[tuple[str, str]]:
-    return [("plan_rules", plan_chunk(p)) for p in plans] + GENERAL_RULES
+def knowledge_chunks(plans: list[Plan], rules: BusinessRules) -> list[tuple[str, str]]:
+    general = [(t.categoria, rules.render(t.texto)) for t in rules.base_conhecimento]
+    return [("plan_rules", plan_chunk(p)) for p in plans] + general
 
 
-def knowledge_text(plans: list[Plan]) -> str:
-    return "\n".join(f"- {text}" for _, text in knowledge_chunks(plans))
+def knowledge_text(plans: list[Plan], rules: BusinessRules) -> str:
+    return "\n".join(f"- {text}" for _, text in knowledge_chunks(plans, rules))
 
 
 def build_system_prompt(nome: str, data_atual: str) -> str:

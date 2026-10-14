@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, Request
 from app.assistant.llm import LLMClient
 from app.config import Settings
 from app.repos.base import Repository
+from app.rules import BusinessRules
 from app.security import ServiceScope, require_service_token
 from app.services.ratelimit import SlidingWindowLimiter
 
@@ -26,6 +27,11 @@ def get_llm(request: Request) -> LLMClient:
     return llm
 
 
+def get_rules(request: Request) -> BusinessRules:
+    rules: BusinessRules = request.app.state.rules
+    return rules
+
+
 def get_chat_limiter(request: Request) -> SlidingWindowLimiter:
     limiter: SlidingWindowLimiter = request.app.state.chat_limiter
     return limiter
@@ -34,6 +40,7 @@ def get_chat_limiter(request: Request) -> SlidingWindowLimiter:
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 RepoDep = Annotated[Repository, Depends(get_repo)]
 LLMDep = Annotated[LLMClient, Depends(get_llm)]
+RulesDep = Annotated[BusinessRules, Depends(get_rules)]
 ChatLimiterDep = Annotated[SlidingWindowLimiter, Depends(get_chat_limiter)]
 ScopeDep = Annotated[ServiceScope, Depends(require_service_token)]
 

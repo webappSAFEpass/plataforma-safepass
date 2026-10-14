@@ -5,7 +5,7 @@ import pytest
 from app.contracts import Provider, ProviderFilters
 from app.services.search import filter_providers
 from app.services.text import plan_slug, uf_from_address
-from tests.conftest import AUTH, OTHER_TOKEN
+from tests.conftest import AUTH, OTHER_TOKEN, RULES
 
 
 async def test_account_returns_profile_without_sensitive_data(client):
@@ -179,15 +179,17 @@ def _provider(localizacao: str, tags: list[str], categoria: str = "Médico") -> 
     ],
 )
 def test_location_matching(cidade, localizacao, expected):
-    found = filter_providers([_provider(localizacao, ["Clínica"])], ProviderFilters(cidade=cidade))
+    found = filter_providers(
+        [_provider(localizacao, ["Clínica"])], ProviderFilters(cidade=cidade), RULES.busca_prestadores
+    )
     assert bool(found) is expected
 
 
 def test_synonyms_and_stems():
     vet = _provider("SP", ["Cães e Gatos", "Dermatologia"], categoria="Veterinário")
-    assert filter_providers([vet], ProviderFilters(especialidade="cachorro"))
-    assert filter_providers([vet], ProviderFilters(especialidade="dermato para gato"))
-    assert not filter_providers([vet], ProviderFilters(especialidade="cardiologia"))
+    assert filter_providers([vet], ProviderFilters(especialidade="cachorro"), RULES.busca_prestadores)
+    assert filter_providers([vet], ProviderFilters(especialidade="dermato para gato"), RULES.busca_prestadores)
+    assert not filter_providers([vet], ProviderFilters(especialidade="cardiologia"), RULES.busca_prestadores)
 
 
 def test_helpers():

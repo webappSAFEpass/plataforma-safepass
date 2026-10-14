@@ -1,12 +1,11 @@
 import uuid
 from datetime import date, datetime
 
-from app.contracts import Dependent, Plan, Provider, ProviderFilters, UserProfile
+from app.contracts import Dependent, Plan, Provider, UserProfile
 from app.domain.ids import parse_user_id, titular_key
 from app.repos.base import Conversation, MessageRow, RawDocument
 from app.repos.mapping import plan_from_row, profile_from_row, provider_from_row
 from app.seed import data
-from app.services.search import filter_providers
 
 
 class MemoryRepository:
@@ -77,8 +76,8 @@ class MemoryRepository:
             )
         return docs
 
-    async def list_providers(self, filters: ProviderFilters) -> list[Provider]:
-        return filter_providers(self.providers, filters)
+    async def list_providers(self) -> list[Provider]:
+        return list(self.providers)
 
     async def create_lead(self, user_id: str, nome: str, telefone: str, mensagem: str) -> tuple[str, str]:
         lead_id, conversation_id = str(uuid.uuid4()), str(uuid.uuid4())
@@ -115,6 +114,9 @@ class MemoryRepository:
         )
 
     async def search_knowledge(self, embedding: list[float], k: int) -> list[str] | None:
+        return None
+
+    async def indexed_knowledge(self) -> set[str] | None:
         return None
 
     async def close(self) -> None:

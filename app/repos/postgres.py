@@ -7,11 +7,10 @@ from typing import Any
 
 import asyncpg
 
-from app.contracts import Dependent, Plan, Provider, ProviderFilters, UserProfile
+from app.contracts import Dependent, Plan, Provider, UserProfile
 from app.domain.ids import parse_user_id, titular_key
 from app.repos.base import Conversation, MessageRow, RawDocument
 from app.repos.mapping import plan_from_row, profile_from_row, provider_from_row
-from app.services.search import filter_providers
 
 CATALOG_TTL_S = 300
 
@@ -140,9 +139,9 @@ class PostgresRepository:
         ]
         return [d for d in docs if titular_id is None or d.titular_id == titular_id]
 
-    async def list_providers(self, filters: ProviderFilters) -> list[Provider]:
-        # Filtro tolerante em Python (mesma lógica do modo memória). Catálogo grande → SQL com unaccent/pg_trgm.
-        return filter_providers(await self._providers.get(), filters)
+    async def list_providers(self) -> list[Provider]:
+        # Filtro tolerante em Python (services.search). Catálogo grande → SQL com unaccent/pg_trgm.
+        return list(await self._providers.get())
 
     async def create_lead(self, user_id: str, nome: str, telefone: str, mensagem: str) -> tuple[str, str]:
         uid = parse_user_id(user_id)
@@ -247,3 +246,7 @@ class PostgresRepository:
             k,
         )
         return [r["conteudo"] for r in rows] or None
+
+    async def indexed_knowledge(self) -> set[str] | None:
+        rows = await self.pool.fetch("select conteudo from knowledge_chunk where embedding is not null")
+        return {r["conteudo"] for r in rows} or None

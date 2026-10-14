@@ -8,11 +8,14 @@ from fastapi import FastAPI
 
 from app.config import Settings
 from app.main import create_app
+from app.rules import load_rules
 
 TOKEN = "test-token-usr001"
 OTHER_TOKEN = "test-token-other-service"
 LLM_URL = "https://llm.test/v1/chat/completions"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
+# Regras do arquivo versionado (as mesmas que a PO edita).
+RULES = load_rules()
 
 
 def make_settings(**overrides: object) -> Settings:

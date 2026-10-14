@@ -18,6 +18,8 @@ from app.contracts import ProviderFilters
 from app.repos.base import MessageRow, Repository
 from app.repos.memory import MemoryRepository
 from app.seed import data
+from app.services.search import filter_providers
+from tests.conftest import RULES
 
 ROOT = Path(__file__).resolve().parent.parent
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
@@ -119,7 +121,7 @@ async def test_documents(repo: Repository) -> None:
     assert {d.titular_nome for d in await repo.list_documents("1", "dep_2")} == {"Maria Souza"}
     # O titular de outra família nunca aparece, mesmo pedindo pelo id dele.
     assert await repo.list_documents("1", "dep_3") == []
-    item = next(d for d in docs if d.tipo == "CNH").to_item(date(2026, 8, 20))
+    item = next(d for d in docs if d.tipo == "CNH").to_item(date(2026, 8, 20), RULES.documentos.dias_alerta_vencimento)
     assert item.status == "valido" and item.validade == "2026-10-05"
 
 
@@ -135,11 +137,12 @@ async def test_documents(repo: Repository) -> None:
     ],
 )
 async def test_providers(repo: Repository, filters: ProviderFilters, expected: list[str]) -> None:
-    assert [p.nome for p in await repo.list_providers(filters)] == expected
+    found = filter_providers(await repo.list_providers(), filters, RULES.busca_prestadores)
+    assert [p.nome for p in found] == expected
 
 
 async def test_providers_sorted_and_complete(repo: Repository) -> None:
-    providers = await repo.list_providers(ProviderFilters())
+    providers = filter_providers(await repo.list_providers(), ProviderFilters(), RULES.busca_prestadores)
     assert len(providers) == len(data.PRESTADORES)
     assert [p.avaliacao for p in providers] == sorted((p.avaliacao for p in providers), reverse=True)
     assert providers[0].tags and isinstance(providers[0].avaliacao, float)
@@ -200,6 +203,7 @@ async def test_postgres_document_join_checks_family(repo: Repository) -> None:
 async def test_postgres_search_knowledge(repo: Repository, request: pytest.FixtureRequest) -> None:
     if isinstance(repo, MemoryRepository):
         assert await repo.search_knowledge([0.0] * 1536, 3) is None
+        assert await repo.indexed_knowledge() is None
         return
     if not getattr(request.node, "has_vector", False):
         pytest.skip("pgvector indisponível neste Postgres")
@@ -212,3 +216,4 @@ async def test_postgres_search_knowledge(repo: Repository, request: pytest.Fixtu
             "[" + ",".join(map(str, vec)) + "]",
         )
     assert (await repo.search_knowledge(near, 1)) == ["perto"]
+    assert await repo.indexed_knowledge() == {"perto", "longe"}

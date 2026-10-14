@@ -15,6 +15,7 @@ RUN pip install --require-hashes -r requirements.txt
 COPY app ./app
 COPY migrations ./migrations
 COPY scripts ./scripts
+COPY regras ./regras
 
 # Nunca rodar como root.
 RUN useradd --create-home --uid 10001 safepass

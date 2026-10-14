@@ -19,6 +19,7 @@ from app.assistant.llm import LLMClient
 from app.assistant.prompt import knowledge_chunks
 from app.config import Settings
 from app.repos.mapping import plan_from_row
+from app.rules import load_rules
 from app.seed import documents
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -55,7 +56,7 @@ async def ingest_kb(conn: asyncpg.Connection) -> None:
     async with httpx.AsyncClient() as http:
         llm = LLMClient(settings, http)
         rows = []
-        for categoria, conteudo in knowledge_chunks(plans):
+        for categoria, conteudo in knowledge_chunks(plans, load_rules(settings.regras_path)):
             embedding = await llm.embed(conteudo)
             if embedding is None:
                 sys.exit("EMBEDDINGS_API_KEY não retornou embedding.")

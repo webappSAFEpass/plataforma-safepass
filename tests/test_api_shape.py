@@ -92,3 +92,10 @@ async def test_end_to_end_on_postgres(llm):
             assert {d["titularNome"] for d in body["cards"][0]["data"]} == {"Maria Souza"}
             history = await app.state.repo.list_messages(conv, 10)
             assert [m.role for m in history] == ["user", "assistant"]
+
+
+def test_openapi_file_matches_the_code():
+    """openapi.json é o contrato que o front usa para gerar os tipos: `make openapi` depois de mudar a API."""
+    from scripts.openapi import OPENAPI_PATH, openapi_text
+
+    assert OPENAPI_PATH.read_text(encoding="utf-8") == openapi_text()

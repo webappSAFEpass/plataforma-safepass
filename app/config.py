@@ -1,7 +1,10 @@
 from datetime import date, datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.rules import DEFAULT_PATH
 
 
 class Settings(BaseSettings):
@@ -37,9 +40,9 @@ class Settings(BaseSettings):
     embeddings_base_url: str = "https://api.openai.com/v1"
     embeddings_model: str = "text-embedding-3-small"
 
-    whatsapp_number: str = "5561999999999"
     timezone: str = "America/Sao_Paulo"
-    consent_valid_days: int = 365
+    # Regras de negócio editáveis pela PO (horários, prazos, mensagens, base de conhecimento).
+    regras_path: Path = DEFAULT_PATH
 
     # Data fixa (ISO) para testes e demonstrações do cálculo de vencimento.
     today_override: date | None = None

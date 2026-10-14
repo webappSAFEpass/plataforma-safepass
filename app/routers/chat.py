@@ -25,8 +25,9 @@ from app.contracts import (
     OkResponse,
     RecadoRequest,
 )
-from app.deps import ChatLimiterDep, LLMDep, RepoDep, ScopeDep, SettingsDep, known_user
+from app.deps import ChatLimiterDep, LLMDep, RepoDep, RulesDep, ScopeDep, SettingsDep, known_user
 from app.repos.base import Conversation, MessageRow, Repository
+from app.rules import BusinessRules
 from app.security import ServiceScope
 from app.services.ratelimit import SlidingWindowLimiter
 from app.services.text import clean_name, mask_phone
@@ -84,6 +85,7 @@ async def _prepare(
     repo: Repository,
     llm: LLMClient,
     settings: Settings,
+    rules: BusinessRules,
     limiter: SlidingWindowLimiter,
 ) -> tuple[Assistant, list[ChatMessage]]:
     user_id = await known_user(repo, scope, body.user_id)
@@ -101,6 +103,7 @@ async def _prepare(
         repo=repo,
         llm=llm,
         settings=settings,
+        rules=rules,
         user_id=user_id,
         lead_nome=clean_name(conversation.lead_nome),
         simulate_after_hours=body.simulate_after_hours,
@@ -125,9 +128,15 @@ async def _persist_reply(repo: Repository, conversation_id: str, result: ChatRes
 
 @router.post("/chat")
 async def chat(
-    body: ChatRequest, scope: ScopeDep, repo: RepoDep, llm: LLMDep, settings: SettingsDep, limiter: ChatLimiterDep
+    body: ChatRequest,
+    scope: ScopeDep,
+    repo: RepoDep,
+    llm: LLMDep,
+    settings: SettingsDep,
+    rules: RulesDep,
+    limiter: ChatLimiterDep,
 ) -> ChatResponse:
-    assistant, history = await _prepare(body, scope, repo, llm, settings, limiter)
+    assistant, history = await _prepare(body, scope, repo, llm, settings, rules, limiter)
     result: ChatResponse | None = None
     try:
         async with asyncio.timeout(settings.chat_timeout_s):
@@ -158,11 +167,17 @@ def _sse(event: str, data: object) -> str:
 
 @router.post("/chat/stream", response_class=StreamingResponse)
 async def chat_stream(
-    body: ChatRequest, scope: ScopeDep, repo: RepoDep, llm: LLMDep, settings: SettingsDep, limiter: ChatLimiterDep
+    body: ChatRequest,
+    scope: ScopeDep,
+    repo: RepoDep,
+    llm: LLMDep,
+    settings: SettingsDep,
+    rules: RulesDep,
+    limiter: ChatLimiterDep,
 ) -> StreamingResponse:
     """SSE: `token` (pedaço de texto), `reset` (descartar o texto já recebido), `card` (Card),
     `done` (ChatResponse final — o front deve exibir `reply` dele), `error`."""
-    assistant, history = await _prepare(body, scope, repo, llm, settings, limiter)
+    assistant, history = await _prepare(body, scope, repo, llm, settings, rules, limiter)
 
     async def generate() -> AsyncIterator[str]:
         # Os headers 200 já saíram: toda falha precisa virar um evento `error`, nunca um corte seco.
@@ -206,23 +221,30 @@ async def create_recado(body: RecadoRequest, scope: ScopeDep, repo: RepoDep) -> 
     return OkResponse()
 
 
-async def _consent_status(repo: Repository, user_id: str, settings: Settings) -> ConsentStatus:
+async def _consent_status(repo: Repository, user_id: str, settings: Settings, rules: BusinessRules) -> ConsentStatus:
     granted_at = await repo.get_consent(user_id)  # uma leitura só: sem corrida com uma revogação
-    if granted_at is None or not consent_active(granted_at, settings):
+    validade_dias = rules.consentimento.validade_dias
+    if granted_at is None or not consent_active(granted_at, settings.now(), validade_dias):
         return ConsentStatus(granted=False)
-    expires = granted_at + timedelta(days=settings.consent_valid_days)
+    expires = granted_at + timedelta(days=validade_dias)
     return ConsentStatus(granted=True, granted_at=granted_at.isoformat(), expires_at=expires.isoformat())
 
 
 @router.get("/consent")
 async def get_consent(
-    userId: Annotated[str, Query(pattern=USER_ID_PATTERN)], scope: ScopeDep, repo: RepoDep, settings: SettingsDep
+    userId: Annotated[str, Query(pattern=USER_ID_PATTERN)],
+    scope: ScopeDep,
+    repo: RepoDep,
+    settings: SettingsDep,
+    rules: RulesDep,
 ) -> ConsentStatus:
-    return await _consent_status(repo, await known_user(repo, scope, userId), settings)
+    return await _consent_status(repo, await known_user(repo, scope, userId), settings, rules)
 
 
 @router.post("/consent")
-async def set_consent(body: ConsentRequest, scope: ScopeDep, repo: RepoDep, settings: SettingsDep) -> ConsentStatus:
+async def set_consent(
+    body: ConsentRequest, scope: ScopeDep, repo: RepoDep, settings: SettingsDep, rules: RulesDep
+) -> ConsentStatus:
     user_id = await known_user(repo, scope, body.user_id)
     await repo.set_consent(user_id, settings.now() if body.action == "grant" else None, origem="botao")
-    return await _consent_status(repo, user_id, settings)
+    return await _consent_status(repo, user_id, settings, rules)

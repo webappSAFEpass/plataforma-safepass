@@ -11,7 +11,7 @@ from typing import Any
 
 from app.assistant.fallback import resolve_whatsapp
 from app.assistant.llm import LLMClient, LLMError, LLMMessage, Turn
-from app.assistant.prompt import RAG_INSTRUCTION, build_system_prompt, knowledge_text
+from app.assistant.prompt import RAG_INSTRUCTION, build_system_prompt, knowledge_chunks, knowledge_text
 from app.assistant.tools import SPECS, TOOLS, ToolName, tool_error
 from app.config import Settings
 from app.contracts import (
@@ -29,6 +29,8 @@ from app.contracts import (
     WhatsappCard,
 )
 from app.repos.base import Repository
+from app.rules import BusinessRules
+from app.services.search import filter_providers
 from app.services.text import normalize
 
 log = logging.getLogger("safepass.assistant")
@@ -36,15 +38,6 @@ log = logging.getLogger("safepass.assistant")
 MAX_TOOL_ROUNDS = 3
 # Prestadores enviados ao modelo e ao card (a base tem centenas).
 MAX_PROVIDERS = 6
-FALLBACK_REPLY = "Não consegui responder agora. Posso te encaminhar ao atendimento humano?"
-CONSENT_MESSAGE = (
-    "Para responder a esta solicitação, precisamos processar seus dados cadastrais e de seus "
-    "dependentes. Você autoriza a consulta pelo assistente virtual?"
-)
-REVOKE_REPLY = (
-    "Pronto, revoguei sua autorização. Não vou mais consultar seus dados cadastrais nem os dos seus "
-    "dependentes até você autorizar de novo."
-)
 # Revogação só com comando explícito ("Revogar consentimento de dados", "quero revogar meu consentimento").
 # Perguntas ("como faço para revogar...?") e negações ("não quero revogar...") seguem para o LLM.
 _REVOKE_COMMAND = re.compile(
@@ -84,8 +77,8 @@ def is_revoke_request(text: str) -> bool:
     return _REVOKE_COMMAND.fullmatch(_compact(re.sub(r"[,.!;:]+", " ", text))) is not None
 
 
-def consent_active(granted_at: datetime | None, settings: Settings) -> bool:
-    return bool(granted_at and granted_at + timedelta(days=settings.consent_valid_days) > settings.now())
+def consent_active(granted_at: datetime | None, now: datetime, validade_dias: int) -> bool:
+    return bool(granted_at and granted_at + timedelta(days=validade_dias) > now)
 
 
 # ---- Eventos emitidos por Assistant.events() ----
@@ -120,6 +113,7 @@ _TOOL_NAMES = {str(t) for t in ToolName}
 class _RunState:
     """Acumulado de uma resposta: cards, ferramentas chamadas e intenção."""
 
+    fallback_reply: str
     started: float = field(default_factory=time.monotonic)
     cards: list[Card] = field(default_factory=list)
     tool_log: list[ToolCallLog] = field(default_factory=list)
@@ -135,7 +129,7 @@ class _RunState:
     def done(self, reply: str) -> Done:
         return Done(
             ChatResponse(
-                reply=reply or FALLBACK_REPLY,
+                reply=reply or self.fallback_reply,
                 cards=self.cards,
                 debug=ChatDebug(
                     intent=self.intent,
@@ -157,6 +151,7 @@ class Assistant:
     repo: Repository
     llm: LLMClient
     settings: Settings
+    rules: BusinessRules
     user_id: str
     lead_nome: str
     simulate_after_hours: bool = False
@@ -180,7 +175,8 @@ class Assistant:
 
     async def _has_consent(self) -> bool:
         if self._consent is None:
-            self._consent = consent_active(await self.repo.get_consent(self.user_id), self.settings)
+            granted_at = await self.repo.get_consent(self.user_id)
+            self._consent = consent_active(granted_at, self.settings.now(), self.rules.consentimento.validade_dias)
         return self._consent
 
     async def run_tool(self, name: str, args: dict[str, Any]) -> ToolResult:
@@ -195,21 +191,27 @@ class Assistant:
                     "O usuário ainda não autorizou o uso dos dados. Não mostre dados; "
                     "peça a autorização no card exibido.",
                 ),
-                ConsentCard(data=ConsentData(message=CONSENT_MESSAGE)),
+                ConsentCard(data=ConsentData(message=self.rules.render(self.rules.consentimento.mensagem_pedido))),
             )
         return await self._handlers[tool](args)
 
     async def _tool_knowledge(self, args: dict[str, Any]) -> ToolResult:
         pergunta = _str(args.get("pergunta"))
+        plans = await self.repo.list_plans()
         if pergunta:
             try:
-                embedding = await self.llm.embed(pergunta)
-                chunks = await self.repo.search_knowledge(embedding, 3) if embedding else None
-                if chunks:
-                    return {"instrucao": RAG_INSTRUCTION, "contexto": chunks}, None
+                indexed = await self.repo.indexed_knowledge()
+                if indexed is not None and indexed != {text for _, text in knowledge_chunks(plans, self.rules)}:
+                    # Regras ou planos mudaram depois da última ingestão: o índice teria texto velho ou faltando.
+                    log.warning("RAG desatualizado (rode scripts.db ingest-kb), usando base completa")
+                elif indexed is not None:
+                    embedding = await self.llm.embed(pergunta)
+                    chunks = await self.repo.search_knowledge(embedding, 3) if embedding else None
+                    if chunks:
+                        return {"instrucao": RAG_INSTRUCTION, "contexto": chunks}, None
             except Exception as exc:  # RAG indisponível não derruba a conversa
                 log.warning("RAG indisponível, usando base completa: %s", type(exc).__name__)
-        return {"instrucao": RAG_INSTRUCTION, "contexto": knowledge_text(await self.repo.list_plans())}, None
+        return {"instrucao": RAG_INSTRUCTION, "contexto": knowledge_text(plans, self.rules)}, None
 
     async def _tool_account(self, _: dict[str, Any]) -> ToolResult:
         profile = await self.repo.get_user(self.user_id)
@@ -240,7 +242,8 @@ class Assistant:
                 ), None
             titular_id = matches[0][0]
         today = self.settings.today()
-        docs = [d.to_item(today) for d in await self.repo.list_documents(self.user_id, titular_id)]
+        dias_alerta = self.rules.documentos.dias_alerta_vencimento
+        docs = [d.to_item(today, dias_alerta) for d in await self.repo.list_documents(self.user_id, titular_id)]
         return [d.model_dump(by_alias=True) for d in docs], DocumentsCard(data=docs)
 
     async def _tool_providers(self, args: dict[str, Any]) -> ToolResult:
@@ -251,7 +254,7 @@ class Assistant:
             cidade=_str(args.get("cidade")),
             modalidade=modalidade if modalidade in ("presencial", "online") else None,
         )
-        found = await self.repo.list_providers(filters)
+        found = filter_providers(await self.repo.list_providers(), filters, self.rules.busca_prestadores)
         top = found[:MAX_PROVIDERS]
         content = {
             "total_encontrado": len(found),
@@ -272,7 +275,7 @@ class Assistant:
             nome=self.lead_nome,
             user_id=self.user_id,
             now=self.settings.now(),
-            number=self.settings.whatsapp_number,
+            rules=self.rules,
             simulate_after_hours=self.simulate_after_hours,
             simulate_within_hours=self.simulate_within_hours,
         )
@@ -293,13 +296,14 @@ class Assistant:
     # ---- Rodadas ----
 
     async def events(self, history: list[ChatMessage], stream: bool) -> AsyncIterator[Event]:
-        state = _RunState()
+        state = _RunState(fallback_reply=self.rules.render(self.rules.assistente.mensagem_sem_resposta))
         last = history[-1]
         if last.role == "user" and is_revoke_request(last.content):
             await self.repo.set_consent(self.user_id, None, origem="mensagem")
             self._consent = False
-            yield Token(REVOKE_REPLY)
-            yield state.done(REVOKE_REPLY)
+            reply = self.rules.render(self.rules.consentimento.mensagem_revogacao)
+            yield Token(reply)
+            yield state.done(reply)
             return
 
         messages: list[LLMMessage] = [
@@ -342,7 +346,7 @@ class Assistant:
                 yield card_event
 
         if not reply:
-            yield Token(FALLBACK_REPLY)
+            yield Token(state.fallback_reply)
         yield state.done(plain_text(reply))
 
     async def _turn(

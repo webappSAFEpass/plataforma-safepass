@@ -2,16 +2,13 @@ from datetime import datetime
 from urllib.parse import quote
 
 from app.contracts import WhatsappData
-
-AFTER_HOURS_MESSAGE = (
-    "Nosso atendimento humano funciona de segunda a sexta, das 8h às 18h. "
-    "Deixe seu recado que retornamos no próximo horário útil."
-)
+from app.rules import DIAS, BusinessRules
 
 
-def within_business_hours(now: datetime) -> bool:
-    """Seg–sex, 8h–18h no fuso de `now` (America/Sao_Paulo)."""
-    return now.weekday() < 5 and 8 <= now.hour < 18
+def within_business_hours(now: datetime, rules: BusinessRules) -> bool:
+    """Dia e horário de atendimento das regras, no fuso de `now` (America/Sao_Paulo)."""
+    atendimento = rules.atendimento_humano
+    return DIAS[now.weekday()] in atendimento.dias and atendimento.abre <= now.time() < atendimento.fecha
 
 
 def resolve_whatsapp(
@@ -19,7 +16,7 @@ def resolve_whatsapp(
     nome: str,
     user_id: str,
     now: datetime,
-    number: str,
+    rules: BusinessRules,
     simulate_after_hours: bool = False,
     simulate_within_hours: bool = False,
 ) -> WhatsappData:
@@ -28,8 +25,10 @@ def resolve_whatsapp(
     As simulações existem para demonstração (forçar um dos dois fluxos a qualquer hora);
     se as duas vierem ligadas, vale "fora do horário".
     """
-    within = (within_business_hours(now) or simulate_within_hours) and not simulate_after_hours
+    atendimento = rules.atendimento_humano
+    within = (within_business_hours(now, rules) or simulate_within_hours) and not simulate_after_hours
     if not within:
-        return WhatsappData(within_hours=False, message=AFTER_HOURS_MESSAGE)
-    texto = f"Olá! Sou {nome} (ID {user_id}). Vim do Assistente SAFEpass. Assunto: {motivo}."
-    return WhatsappData(within_hours=True, link=f"https://wa.me/{number}?text={quote(texto)}", message=texto)
+        return WhatsappData(within_hours=False, message=rules.render(atendimento.mensagem_fora_do_horario))
+    texto = rules.render(atendimento.mensagem_whatsapp, nome=nome, id_usuario=user_id, motivo=motivo)
+    link = f"https://wa.me/{atendimento.whatsapp}?text={quote(texto)}"
+    return WhatsappData(within_hours=True, link=link, message=texto)

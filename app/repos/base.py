@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Protocol
 
-from app.contracts import Dependent, DocumentItem, Plan, Provider, ProviderFilters, UserProfile
+from app.contracts import Dependent, DocumentItem, Plan, Provider, UserProfile
 from app.domain.documents import document_status
 
 
@@ -21,14 +21,14 @@ class RawDocument:
     validade: date | None
     observacao: str | None
 
-    def to_item(self, today: date) -> DocumentItem:
+    def to_item(self, today: date, dias_alerta: int) -> DocumentItem:
         return DocumentItem(
             id=self.id,
             titular_id=self.titular_id,
             titular_nome=self.titular_nome,
             tipo=f"{self.tipo} ({self.observacao})" if self.observacao else self.tipo,
             validade=self.validade.isoformat() if self.validade else None,
-            status=document_status(self.validade, today),
+            status=document_status(self.validade, today, dias_alerta),
         )
 
 
@@ -47,7 +47,9 @@ class Repository(Protocol):
     async def get_user(self, user_id: str) -> UserProfile | None: ...
     async def list_dependents(self, user_id: str) -> list[Dependent]: ...
     async def list_documents(self, user_id: str, titular_id: str | None) -> list[RawDocument]: ...
-    async def list_providers(self, filters: ProviderFilters) -> list[Provider]: ...
+    async def list_providers(self) -> list[Provider]:
+        """Catálogo inteiro; o filtro fica em services.search (usa o vocabulário das regras)."""
+        ...
 
     async def create_lead(self, user_id: str, nome: str, telefone: str, mensagem: str) -> tuple[str, str]: ...
     async def get_conversation(self, conversation_id: str) -> Conversation | None: ...
@@ -65,6 +67,10 @@ class Repository(Protocol):
 
     async def search_knowledge(self, embedding: list[float], k: int) -> list[str] | None:
         """None = busca vetorial indisponível (usa a base inteira)."""
+        ...
+
+    async def indexed_knowledge(self) -> set[str] | None:
+        """Textos que estão no índice vetorial (None = sem índice). O assistente compara com a base atual."""
         ...
 
     async def close(self) -> None: ...

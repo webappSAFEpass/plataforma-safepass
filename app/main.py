@@ -16,6 +16,7 @@ from app.observability import configure_logging, incoming_request_id, request_id
 from app.repos.base import Repository
 from app.repos.memory import MemoryRepository
 from app.routers import chat, data
+from app.rules import load_rules
 from app.services.ratelimit import SlidingWindowLimiter
 
 log = logging.getLogger("safepass")
@@ -57,6 +58,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     app.state.settings = settings
+    # Regras inválidas = o app não sobe: melhor o deploy falhar do que atender com regra quebrada.
+    app.state.rules = load_rules(settings.regras_path)
     app.include_router(data.router, prefix=settings.api_prefix)
     app.include_router(chat.router, prefix=settings.api_prefix)
     _install_handlers(app)

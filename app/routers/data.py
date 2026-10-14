@@ -15,7 +15,8 @@ from app.contracts import (
     ProviderFilters,
     UserProfile,
 )
-from app.deps import RepoDep, ScopeDep, SettingsDep, known_user
+from app.deps import RepoDep, RulesDep, ScopeDep, SettingsDep, known_user
+from app.services.search import filter_providers
 
 router = APIRouter(tags=["dados"])
 
@@ -50,6 +51,7 @@ async def list_documents(
     scope: ScopeDep,
     repo: RepoDep,
     settings: SettingsDep,
+    rules: RulesDep,
     dependentId: Annotated[str | None, Query(pattern=TITULAR_ID_PATTERN)] = None,
 ) -> list[DocumentItem]:
     user_id = await known_user(repo, scope, userId)
@@ -58,20 +60,21 @@ async def list_documents(
         if dependentId not in family:
             raise HTTPException(status_code=404, detail="dependente não encontrado")
     today = settings.today()
-    return [d.to_item(today) for d in await repo.list_documents(user_id, dependentId or None)]
+    dias_alerta = rules.documentos.dias_alerta_vencimento
+    return [d.to_item(today, dias_alerta) for d in await repo.list_documents(user_id, dependentId or None)]
 
 
 @router.get("/providers")
 async def list_providers(
     _: ScopeDep,
     repo: RepoDep,
+    rules: RulesDep,
     categoria: FilterText = None,
     especialidade: FilterText = None,
     cidade: FilterText = None,
     modalidade: Modalidade | None = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PROVIDERS_PAGE)] = 20,
 ) -> list[Provider]:
-    found = await repo.list_providers(
-        ProviderFilters(categoria=categoria, especialidade=especialidade, cidade=cidade, modalidade=modalidade)
-    )
+    filters = ProviderFilters(categoria=categoria, especialidade=especialidade, cidade=cidade, modalidade=modalidade)
+    found = filter_providers(await repo.list_providers(), filters, rules.busca_prestadores)
     return found[:limit]
