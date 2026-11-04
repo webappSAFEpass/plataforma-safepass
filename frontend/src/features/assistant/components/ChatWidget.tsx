@@ -1,6 +1,5 @@
 "use client";
 
-import localFont from "next/font/local";
 import { useEffect, useRef, useState } from "react";
 import {
   ApiError,
@@ -18,16 +17,6 @@ import Conversation from "./Conversation";
 import ScreenForm, { type ScreeningData } from "./ScreenForm";
 import { ChatIcon, CloseIcon } from "./icons";
 import { cx } from "../cx";
-
-// A fonte vem com o widget: o site que o hospeda não precisa carregá-la.
-const yanone = localFont({
-  src: "../fonts/YanoneKaffeesatz-Regular.ttf",
-  weight: "200 700",
-  style: "normal",
-  display: "swap",
-  variable: "--font-yanone",
-  fallback: ["-apple-system", "Segoe UI", "sans-serif"],
-});
 
 // Sem o horário do backend (ex.: a chamada falhou), o aviso de recado fica sem citar o horário.
 const RECADO_FALLBACK = "Deixe seu recado que retornamos no próximo horário útil.";
@@ -219,7 +208,7 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className={`${cx("root")} ${yanone.variable}`}>
+    <div className={cx("root")}>
       {isOpen && (
         <section
           className={cx("chat-panel")}

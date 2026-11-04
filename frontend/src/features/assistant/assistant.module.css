@@ -1,27 +1,32 @@
 /* Estilos do widget do assistente (CSS Module: classes com escopo, sem colidir com o site que o hospeda).
    Use as classes via `cx()` (./cx.ts). Os tokens ficam em .root, não em :root, para não sobrescrever
-   as variáveis do site. A fonte vem de next/font/local no ChatWidget (variável --font-yanone). */
+   as variáveis do site. Paleta, raios e fontes seguem o layout da área logada (Inter no texto, Sora nos títulos,
+   via --font-inter/--font-sora do layout raiz, com fallback do sistema). */
 
 .root {
-  --radius: 0.5rem;
+  --radius: 0.85rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
 
-  --background: #d1f0e3;
-  --foreground: #223140;
-  --card: #d1f0e3;
+  --font-body: var(--font-inter, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-heading:
+    var(--font-sora, var(--font-inter, ui-sans-serif)), ui-sans-serif, system-ui, sans-serif;
 
-  /* Azul — marca / ações primárias (fundo claro, texto/ícone escuro) */
-  --primary: #d6e8f6;
-  --primary-foreground: #3f6886;
+  --background: #ffffff;
+  --foreground: #3f6886;
+  --card: #ffffff;
+
+  /* Azul SAFEpass: header, botões e bolha do usuário (fundo escuro, texto branco) */
+  --primary: #3f6886;
+  --primary-foreground: #ffffff;
   --secondary: #d6e8f6;
   --secondary-foreground: #3f6886;
 
-  --muted-foreground: #4a5d6b; /* 5.6:1 sobre o fundo: WCAG AA */
-  --border: #d7e1e6;
-  --input: #c3d3db;
+  --muted-foreground: #718493;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
   --ring: #3f6886;
 
   /* Vermelho — erro / validação */
@@ -32,45 +37,24 @@
   /* Verde — online / verificado / disponibilidade boa */
   --status-online: #2f9e5c;
   --success-soft: #d1f0e3;
-  --success-foreground: #1e6b40;
+  --success-foreground: #2f9e5c;
 
   /* Âmbar — destaque / disponibilidade alternativa */
   --warning: #f59f0c;
   --warning-soft: #fff5b2;
-  --warning-foreground: #6b4b06;
+  --warning-foreground: #f59f0c;
 
-  --chat-surface: #d1f0e3;
+  /* Fundo da conversa: o mesmo cinza-esverdeado do fundo da área */
+  --chat-surface: #f4f7f5;
 
-  --shadow-chat:
-    0 20px 55px color-mix(in oklab, var(--primary) 22%, transparent),
-    0 4px 14px color-mix(in oklab, var(--foreground) 10%, transparent);
-  --shadow-fab: 0 10px 28px color-mix(in oklab, var(--primary) 38%, transparent);
-  --shadow-result: 0 3px 10px color-mix(in oklab, var(--primary) 8%, transparent);
+  --shadow-chat: 0 18px 40px rgb(63 104 134 / 0.2), 0 4px 14px rgb(63 104 134 / 0.08);
+  --shadow-fab: 0 10px 28px rgb(63 104 134 / 0.35);
+  --shadow-result: 0 12px 32px rgb(63 104 134 / 0.045);
 
-  font-family:
-    var(--font-yanone),
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-  font-size: 18px;
+  font-family: var(--font-body);
+  font-size: 16px;
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
-}
-
-@media (prefers-color-scheme: dark) {
-  :global(:root:not([data-theme="light"])) .root {
-    --background: #eaf0f3;
-    --foreground: #141c22;
-    --card: #eaf0f3;
-    --primary: #3f6886;
-    --primary-foreground: #eaf0f3;
-    --secondary: #eaf0f3;
-    --secondary-foreground: #141c22;
-    --muted-foreground: #56656f; /* 5.2:1 sobre o fundo: WCAG AA */
-    --border: #2c3942;
-    --input: #37454e;
-    --chat-surface: #eaf0f3;
-  }
 }
 
 .root,
@@ -84,9 +68,8 @@
   display: none !important;
 }
 
-.root button,
-.root input,
-.root textarea {
+/* :where zera a especificidade: o reset não vence as classes dos botões (.btn-primary etc.). */
+.root :where(button, input, textarea) {
   font: inherit;
   color: inherit;
 }
@@ -241,8 +224,10 @@
 }
 .header-title-row h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -298,13 +283,15 @@
 }
 .form-intro h2 {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
   color: var(--foreground);
 }
 .form-intro p {
   margin: 0.25rem 0 0;
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1.3;
   color: var(--muted-foreground);
 }
@@ -315,15 +302,17 @@
 .field label {
   display: block;
   margin-bottom: 0.375rem;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .field input,
 .field textarea {
   width: 100%;
   border: 1px solid var(--input);
   border-radius: var(--radius-md);
-  padding: 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem;
   font-size: 1rem;
   background: var(--background);
   color: var(--foreground);
@@ -332,7 +321,7 @@
 .field textarea:focus {
   outline: none;
   border-color: var(--ring);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--secondary) 60%, transparent);
 }
 .field textarea {
   min-height: 6rem;
@@ -373,13 +362,14 @@
   border-radius: var(--radius-md);
   background: var(--primary);
   color: var(--primary-foreground);
-  font-size: 1.05rem;
-  font-weight: 500;
+  box-shadow: 0 8px 18px rgb(63 104 134 / 0.16);
+  font-size: 1rem;
+  font-weight: 400;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .btn-primary:hover {
-  background: color-mix(in oklab, var(--primary) 90%, black);
+  background: #2f526d;
 }
 
 .btn-outline {
@@ -419,8 +409,9 @@
 .started-pill {
   align-self: center;
   border-radius: 999px;
-  background: var(--warning-soft);
-  color: var(--warning-foreground);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 700;
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
 }
@@ -475,9 +466,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: var(--radius-sm);
-  background: var(--warning-soft);
-  color: var(--warning-foreground);
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 700;
   padding: 0.3rem 0.55rem;
   font-size: 0.8rem;
   line-height: 1;
@@ -503,8 +495,10 @@
 }
 .result-info h3 {
   margin: 0;
+  font-family: var(--font-heading);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .result-info p {
   margin: 0;

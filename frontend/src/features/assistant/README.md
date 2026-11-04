@@ -1,6 +1,6 @@
 # Módulo do assistente SAFEpass
 
-Tudo o que o chat precisa fica nesta pasta: componentes, estilos com escopo, fonte, cliente do SSE, contratos gerados do backend e os handlers das rotas de servidor. Para levar o chat para outro projeto Next.js (App Router), basta copiar a pasta e criar cinco arquivos de rota.
+Tudo o que o chat precisa fica nesta pasta: componentes, estilos com escopo, cliente do SSE, contratos gerados do backend e os handlers das rotas de servidor. Para levar o chat para outro projeto Next.js (App Router), basta copiar a pasta e criar cinco arquivos de rota.
 
 ```
 features/assistant/
@@ -8,7 +8,6 @@ features/assistant/
   components/              ChatWidget (raiz), cabeçalho, formulário, conversa, cards, ícones
   assistant.module.css    estilos com escopo (CSS Module); tokens na .root, não em :root
   cx.ts                    cx("icon-btn", "header-btn"): classes do CSS Module pelo nome
-  fonts/                   Yanone Kaffeesatz, carregada pelo próprio widget (next/font/local)
   lib/chat.ts              cliente: leitura do SSE, POST/GET, mensagens de erro
   lib/contracts.ts         apelidos dos tipos gerados (não edite à mão)
   lib/api.gen.ts           gerado do openapi.json do backend (pnpm api:assistant-types)
@@ -60,7 +59,7 @@ Os imports internos são relativos, então o módulo não depende do alias `@/` 
 
 ## Estilos
 
-Os estilos são um CSS Module: as classes recebem nomes únicos no build. Assim, um `.btn-primary` ou `.field` do site não afeta o chat, e o chat não afeta o site. As variáveis de cor ficam na `.root` do widget, então não sobrescrevem as do site. O modo escuro segue `prefers-color-scheme` e respeita `<html data-theme="light">`.
+Os estilos são um CSS Module: as classes recebem nomes únicos no build. Assim, um `.btn-primary` ou `.field` do site não afeta o chat, e o chat não afeta o site. As variáveis de cor ficam na `.root` do widget, então não sobrescrevem as do site. A paleta e as fontes seguem o layout da área logada: Inter e Sora vêm das variáveis `--font-inter` e `--font-sora` do layout raiz, com fallback para a fonte do sistema.
 
 Use as classes sempre por `cx("nome-da-classe")`. Em desenvolvimento, um nome que não existe no CSS quebra na hora, em vez de sumir o estilo em silêncio.
 

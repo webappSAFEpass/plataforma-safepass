@@ -1,11 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { server } from "../src/mocks/node";
-
-// next/font só existe no build do Next; nos testes basta uma classe vazia.
-vi.mock("next/font/local", () => ({ default: () => ({ className: "", variable: "" }) }));
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
