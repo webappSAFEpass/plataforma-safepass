@@ -2,10 +2,10 @@
 
 O chat inteiro mora em `features/assistente/`. Para levar só o chat a outro projeto, veja `features/assistente/README.md`.
 
-O chat conversa com o backend SAFEpass (FastAPI, repositório `safepass-backend`). Suba o backend antes:
+O chat conversa com o backend SAFEpass (FastAPI, pasta `assistente-ia/` deste repositório). Suba o backend antes:
 
 ```bash
-cd ../safepass-backend && make run      # http://localhost:8000/v1
+cd ../assistente-ia && make run      # http://localhost:8000/v1
 ```
 
 Depois, neste projeto:

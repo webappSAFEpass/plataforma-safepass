@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "contracts": "openapi-typescript ../safepass-backend/openapi.json -o features/assistente/lib/api.gen.ts",
+    "contracts": "openapi-typescript ../assistente-ia/openapi.json -o features/assistente/lib/api.gen.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
