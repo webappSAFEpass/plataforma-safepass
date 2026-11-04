@@ -1,6 +1,6 @@
 ## Como abrir
 
-O chat inteiro mora em `features/assistente/`. Para levar só o chat a outro projeto, veja `features/assistente/README.md`.
+O chat inteiro mora em `src/features/assistant/`. Para levar só o chat a outro projeto, veja `src/features/assistant/README.md`.
 
 O chat conversa com o backend SAFEpass (FastAPI, pasta `assistente-ia/` deste repositório). Suba o backend antes:
 
@@ -12,8 +12,8 @@ Depois, neste projeto:
 
 ```bash
 cp .env.example .env.local   # BACKEND_API_URL, BACKEND_API_TOKEN (o mesmo token de SERVICE_TOKENS do backend), SESSION_USER_ID
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Abra **http://localhost:3000** no navegador (use `localhost`, não o IP de rede que também aparece no terminal).
