@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, BotIcon, CloseIcon } from "./icons";
+import { cx } from "../cx";
 
 type ChatHeaderProps = {
   subtitle: string;
@@ -11,11 +12,11 @@ type ChatHeaderProps = {
 
 export default function ChatHeader({ subtitle, showBack, onBack, onClose }: ChatHeaderProps) {
   return (
-    <header className="chat-header">
+    <header className={cx("chat-header")}>
       {showBack && (
         <button
           type="button"
-          className="icon-btn header-btn"
+          className={cx("icon-btn", "header-btn")}
           aria-label="Voltar à identificação"
           onClick={onBack}
         >
@@ -23,21 +24,21 @@ export default function ChatHeader({ subtitle, showBack, onBack, onClose }: Chat
         </button>
       )}
 
-      <div className="header-avatar">
-        <BotIcon className="icon icon-lg" />
+      <div className={cx("header-avatar")}>
+        <BotIcon className={cx("icon", "icon-lg")} />
       </div>
 
-      <div className="header-id">
-        <div className="header-title-row">
+      <div className={cx("header-id")}>
+        <div className={cx("header-title-row")}>
           <h1>Assistente SAFEpass</h1>
-          <span className="online-dot" role="img" aria-label="Online" />
+          <span className={cx("online-dot")} role="img" aria-label="Online" />
         </div>
-        <p className="header-subtitle">{subtitle}</p>
+        <p className={cx("header-subtitle")}>{subtitle}</p>
       </div>
 
       <button
         type="button"
-        className="icon-btn header-btn"
+        className={cx("icon-btn", "header-btn")}
         aria-label="Fechar conversa"
         onClick={onClose}
       >

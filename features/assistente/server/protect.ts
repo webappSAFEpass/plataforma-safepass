@@ -8,6 +8,7 @@ export const LIMITS = {
   lead: { max: 5, windowMs: 10 * 60_000 },
   recado: { max: 5, windowMs: 10 * 60_000 },
   consent: { max: 10, windowMs: 60_000 },
+  atendimento: { max: 30, windowMs: 60_000 },
 } satisfies Record<string, Limit>;
 
 // Em memória: vale para uma instância (demo/MVP). Com várias réplicas, usar Redis/Upstash.

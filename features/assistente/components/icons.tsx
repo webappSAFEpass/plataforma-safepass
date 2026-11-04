@@ -1,9 +1,10 @@
 import type { SVGProps } from "react";
+import { cx } from "../cx";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-/** Base comum: mantém as classes utilitárias `.icon`, `.icon-sm`, etc. do CSS. */
-function Icon({ className = "icon", children, ...rest }: IconProps) {
+/** Base comum: sem `className`, usa a classe `icon` do CSS; quem passa usa `cx("icon", "icon-sm")`. */
+function Icon({ className = cx("icon"), children, ...rest }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...rest}>
       {children}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { SendIcon } from "./icons";
+import { cx } from "../cx";
 
 type ComposerProps = {
   disabled: boolean;
@@ -48,10 +49,10 @@ export default function Composer({ disabled, onSend }: ComposerProps) {
   }
 
   return (
-    <footer className="composer">
-      <form className="composer-form" onSubmit={handleSubmit} ref={formRef}>
+    <footer className={cx("composer")}>
+      <form className={cx("composer-form")} onSubmit={handleSubmit} ref={formRef}>
         <textarea
-          className="composer-textarea"
+          className={cx("composer-textarea")}
           aria-label="Mensagem"
           placeholder="Digite sua mensagem..."
           rows={1}
@@ -62,13 +63,13 @@ export default function Composer({ disabled, onSend }: ComposerProps) {
           onKeyDown={handleKeyDown}
         />
 
-        <div className="composer-footer">
-          <button type="submit" className="icon-btn send-btn" aria-label="Enviar mensagem" disabled={disabled}>
-            <SendIcon className="icon icon-sm" />
+        <div className={cx("composer-footer")}>
+          <button type="submit" className={cx("icon-btn", "send-btn")} aria-label="Enviar mensagem" disabled={disabled}>
+            <SendIcon className={cx("icon", "icon-sm")} />
           </button>
         </div>
       </form>
-      <p className="composer-disclaimer">Respostas automáticas podem conter imprecisões.</p>
+      <p className={cx("composer-disclaimer")}>Respostas automáticas podem conter imprecisões.</p>
     </footer>
   );
 }

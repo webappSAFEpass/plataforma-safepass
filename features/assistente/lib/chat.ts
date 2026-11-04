@@ -118,6 +118,12 @@ export async function streamChat(
   }
 }
 
+export async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw await apiError(res);
+  return res.json();
+}
+
 export async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: "POST",

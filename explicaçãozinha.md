@@ -1,5 +1,7 @@
 ## Como abrir
 
+O chat inteiro mora em `features/assistente/`. Para levar só o chat a outro projeto, veja `features/assistente/README.md`.
+
 O chat conversa com o backend SAFEpass (FastAPI, repositório `safepass-backend`). Suba o backend antes:
 
 ```bash

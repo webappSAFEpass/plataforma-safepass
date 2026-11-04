@@ -1,8 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useRef } from "react";
-import type { ChatMessage } from "@/lib/chat";
+import type { ChatMessage } from "../lib/chat";
 import ResultsCard, { type CardActions } from "./ResultsCard";
+import { cx } from "../cx";
 
 type ConversationProps = CardActions & {
   messages: ChatMessage[];
@@ -21,27 +22,25 @@ export default function Conversation({ messages, busy, onConsent, onRecado }: Co
 
   return (
     <div
-      className="conversation"
+      className={cx("conversation")}
       ref={containerRef}
       role="log"
       aria-live="polite"
       aria-busy={busy}
       aria-label="Conversa com o assistente"
     >
-      <div className="started-pill">Atendimento iniciado agora</div>
+      <div className={cx("started-pill")}>Atendimento iniciado agora</div>
 
       {messages.map((message) => (
         <Fragment key={message.id}>
           <div
-            className={[
+            className={cx(
               "message",
               message.role === "user" ? "message-user" : "message-assistant",
-              message.typing ? "message-typing" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+              message.typing && "message-typing",
+            )}
           >
-            <div className="bubble">{message.text}</div>
+            <div className={cx("bubble")}>{message.text}</div>
           </div>
 
           {message.cards?.map((card, index) => (

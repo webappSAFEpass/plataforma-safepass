@@ -1,24 +1,38 @@
 "use client";
 
+import localFont from "next/font/local";
 import { useEffect, useRef, useState } from "react";
-import { ApiError, createId, errorText, postJson, streamChat, type ChatMessage } from "@/lib/chat";
+import { ApiError, createId, errorText, getJson, postJson, streamChat, type ChatMessage } from "../lib/chat";
+import type { AtendimentoInfo } from "../lib/contracts";
 import ChatHeader from "./ChatHeader";
 import Composer from "./Composer";
 import Conversation from "./Conversation";
 import ScreenForm, { type ScreeningData } from "./ScreenForm";
 import { ChatIcon, CloseIcon } from "./icons";
+import { cx } from "../cx";
 
-const RECADO_HINT = "Nosso atendimento humano funciona de segunda a sexta, das 8h às 18h.";
+// A fonte vem com o widget: o site que o hospeda não precisa carregá-la.
+const yanone = localFont({
+  src: "../fonts/YanoneKaffeesatz-Regular.ttf",
+  weight: "200 700",
+  style: "normal",
+  display: "swap",
+  variable: "--font-yanone",
+  fallback: ["-apple-system", "Segoe UI", "sans-serif"],
+});
+
+// Sem o horário do backend (ex.: a chamada falhou), o aviso de recado fica sem citar o horário.
+const RECADO_FALLBACK = "Deixe seu recado que retornamos no próximo horário útil.";
 
 /** Bolha de erro; oferece recado quando o problema não se resolve esperando alguns segundos. */
-function errorMessage(id: string, error: unknown): ChatMessage {
+function errorMessage(id: string, error: unknown, recadoHint: string): ChatMessage {
   const status = error instanceof ApiError ? error.status : 0;
   const offerRecado = status !== 429 && status !== 504;
   return {
     id,
     role: "assistant",
     text: errorText(error),
-    cards: offerRecado ? [{ type: "whatsapp", data: { withinHours: false, message: RECADO_HINT } }] : undefined,
+    cards: offerRecado ? [{ type: "whatsapp", data: { withinHours: false, link: null, message: recadoHint } }] : undefined,
   };
 }
 
@@ -41,6 +55,8 @@ export default function ChatWidget() {
   const replyingRef = useRef(false); // uma resposta por vez
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef("");
+  // Horário do atendimento humano: vem das regras da PO no backend, não fica escrito aqui.
+  const recadoHintRef = useRef(RECADO_FALLBACK);
 
   useEffect(() => {
     return () => {
@@ -87,7 +103,7 @@ export default function ChatWidget() {
       );
       update((m) => ({ ...m, typing: false, text: result.reply, cards: result.cards }));
     } catch (error) {
-      if (!isAbort(error)) update(() => errorMessage(botId, error));
+      if (!isAbort(error)) update(() => errorMessage(botId, error, recadoHintRef.current));
     } finally {
       if (run === runRef.current) {
         replyingRef.current = false;
@@ -123,6 +139,11 @@ export default function ChatWidget() {
     }
     if (run !== runRef.current) return; // o usuário voltou enquanto o lead era criado
     conversationRef.current = conversation;
+    getJson<AtendimentoInfo>("/api/atendimento")
+      .then((info) => {
+        recadoHintRef.current = info.mensagemForaDoHorario;
+      })
+      .catch(() => undefined); // sem o horário, o aviso usa o texto genérico
     setConversationId(conversation);
     lastQuestionRef.current = data.message;
     await ask(data.message);
@@ -167,7 +188,7 @@ export default function ChatWidget() {
     try {
       await postJson("/api/consent", { action: "grant" });
     } catch (error) {
-      setMessages((current) => [...current, errorMessage(createId("bot"), error)]);
+      setMessages((current) => [...current, errorMessage(createId("bot"), error, recadoHintRef.current)]);
       return false;
     }
     // Reprocessa a última pergunta já gravada, agora com permissão (retry: não grava de novo).
@@ -182,10 +203,10 @@ export default function ChatWidget() {
   }
 
   return (
-    <>
+    <div className={`${cx("root")} ${yanone.variable}`}>
       {isOpen && (
         <section
-          className="chat-panel"
+          className={cx("chat-panel")}
           role="dialog"
           aria-label="Assistente SAFEpass"
           onKeyDown={(event) => {
@@ -200,7 +221,7 @@ export default function ChatWidget() {
           />
 
           {isStarted ? (
-            <div className="screen-chat">
+            <div className={cx("screen-chat")}>
               <Conversation
                 messages={messages}
                 busy={isReplying}
@@ -217,13 +238,13 @@ export default function ChatWidget() {
 
       <button
         type="button"
-        className="chat-fab"
+        className={cx("chat-fab")}
         aria-expanded={isOpen}
         aria-label={isOpen ? "Fechar assistente" : "Abrir assistente virtual"}
         onClick={() => setIsOpen((current) => !current)}
       >
-        {isOpen ? <CloseIcon className="icon icon-lg" /> : <ChatIcon className="icon icon-lg" />}
+        {isOpen ? <CloseIcon className={cx("icon", "icon-lg")} /> : <ChatIcon className={cx("icon", "icon-lg")} />}
       </button>
-    </>
+    </div>
   );
 }

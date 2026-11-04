@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { SendIcon, ShieldCheckIcon, SparkleIcon } from "./icons";
+import { cx } from "../cx";
 
 export type ScreeningData = {
   name: string;
@@ -55,16 +56,16 @@ export default function ScreenForm({ autoFocus = false, initialValues, error, on
   }
 
   return (
-    <form className="screen-form" onSubmit={handleSubmit} noValidate>
-      <div className="form-intro">
-        <div className="intro-icon">
+    <form className={cx("screen-form")} onSubmit={handleSubmit} noValidate>
+      <div className={cx("form-intro")}>
+        <div className={cx("intro-icon")}>
           <SparkleIcon />
         </div>
         <h2>Antes de começar</h2>
         <p>Preencha seus dados para iniciarmos o atendimento.</p>
       </div>
 
-      <div className={`field${errors.name ? " invalid" : ""}`}>
+      <div className={cx("field", errors.name && "invalid")}>
         <label htmlFor="chat-name">Nome</label>
         <input
           id="chat-name"
@@ -80,13 +81,13 @@ export default function ScreenForm({ autoFocus = false, initialValues, error, on
           aria-describedby={errors.name ? "err-name" : undefined}
         />
         {errors.name && (
-          <p className="field-error" id="err-name">
+          <p className={cx("field-error")} id="err-name">
             {errors.name}
           </p>
         )}
       </div>
 
-      <div className={`field${errors.phone ? " invalid" : ""}`}>
+      <div className={cx("field", errors.phone && "invalid")}>
         <label htmlFor="chat-phone">Telefone</label>
         <input
           id="chat-phone"
@@ -102,13 +103,13 @@ export default function ScreenForm({ autoFocus = false, initialValues, error, on
           aria-describedby={errors.phone ? "err-phone" : undefined}
         />
         {errors.phone && (
-          <p className="field-error" id="err-phone">
+          <p className={cx("field-error")} id="err-phone">
             {errors.phone}
           </p>
         )}
       </div>
 
-      <div className={`field${errors.message ? " invalid" : ""}`}>
+      <div className={cx("field", errors.message && "invalid")}>
         <label htmlFor="chat-first-message">Como podemos ajudar?</label>
         <textarea
           id="chat-first-message"
@@ -121,26 +122,26 @@ export default function ScreenForm({ autoFocus = false, initialValues, error, on
           aria-describedby={errors.message ? "err-message" : undefined}
         />
         {errors.message && (
-          <p className="field-error" id="err-message">
+          <p className={cx("field-error")} id="err-message">
             {errors.message}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="field-error" role="alert">
+        <p className={cx("field-error")} role="alert">
           {error}
         </p>
       )}
 
-      <div className="form-footer">
-        <div className="privacy-note">
-          <ShieldCheckIcon className="icon icon-sm icon-online" />
+      <div className={cx("form-footer")}>
+        <div className={cx("privacy-note")}>
+          <ShieldCheckIcon className={cx("icon", "icon-sm", "icon-online")} />
           Seus dados são usados apenas neste atendimento.
         </div>
-        <button type="submit" className="btn-primary">
+        <button type="submit" className={cx("btn-primary")}>
           Iniciar conversa
-          <SendIcon className="icon icon-sm" />
+          <SendIcon className={cx("icon", "icon-sm")} />
         </button>
       </div>
     </form>

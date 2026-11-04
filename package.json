@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "contracts": "openapi-typescript ../safepass-backend/openapi.json -o features/assistente/lib/api.gen.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^16.3.5",
@@ -18,6 +20,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "openapi-typescript": "^7.13.0",
     "typescript": "^5"
   }
 }

@@ -56,10 +56,20 @@ export function backendFetch(path: string, body: unknown, signal?: AbortSignal):
   });
 }
 
+/** GET ao backend (dados de leitura, ex.: horário do atendimento). */
+function backendGet(path: string): Promise<Response> {
+  const { url, token } = config();
+  return fetch(`${url}${path}`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Request-ID": crypto.randomUUID() },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
 /** Repassa a resposta JSON do backend (mesmo status), sem expor detalhes internos em caso de falha de rede. */
-export async function forwardJson(path: string, body: unknown): Promise<Response> {
+export async function forwardJson(path: string, body?: unknown): Promise<Response> {
   try {
-    const res = await backendFetch(path, body);
+    const res = body === undefined ? await backendGet(path) : await backendFetch(path, body);
     return new Response(await res.text(), {
       status: res.status,
       headers: { "Content-Type": "application/json" },
