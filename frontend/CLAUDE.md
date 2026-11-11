@@ -146,3 +146,7 @@ Usar cache do pnpm (`actions/setup-node` com `cache: pnpm`). Pull requests só s
 - Branches: `feat/<feature>-<descricao>`, `fix/...`, `chore/...`. Nunca commitar direto na `main`.
 - Commits no padrão **Conventional Commits**: `feat(marketplace): adiciona filtro por faixa de preço`.
 - PRs pequenos, com descrição, screenshots (desktop e mobile) para mudanças visuais e instruções de teste.
+
+## Next.js 16
+
+@AGENTS.md

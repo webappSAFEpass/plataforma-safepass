@@ -1,0 +1,238 @@
+{
+  "$defs": {
+    "Assistente": {
+      "additionalProperties": false,
+      "properties": {
+        "mensagem_sem_resposta": {
+          "description": "Resposta quando a IA não consegue responder",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Mensagem Sem Resposta",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mensagem_sem_resposta"
+      ],
+      "title": "Assistente",
+      "type": "object"
+    },
+    "AtendimentoHumano": {
+      "additionalProperties": false,
+      "properties": {
+        "whatsapp": {
+          "description": "Número com DDI e DDD, só dígitos. Ex.: 5561999999999",
+          "pattern": "^[0-9]{10,15}$",
+          "title": "Whatsapp",
+          "type": "string"
+        },
+        "dias": {
+          "description": "Dias com atendimento humano",
+          "items": {
+            "enum": [
+              "segunda",
+              "terca",
+              "quarta",
+              "quinta",
+              "sexta",
+              "sabado",
+              "domingo"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dias",
+          "type": "array"
+        },
+        "abre": {
+          "description": "Horário de abertura (HH:MM), no fuso da aplicação",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+          "title": "Abre",
+          "type": "string"
+        },
+        "fecha": {
+          "description": "Horário de fechamento (HH:MM), no fuso da aplicação",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+          "title": "Fecha",
+          "type": "string"
+        },
+        "mensagem_whatsapp": {
+          "description": "Texto que já vai preenchido no WhatsApp. Marcadores: {nome}, {id_usuario}, {motivo}",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Mensagem Whatsapp",
+          "type": "string"
+        },
+        "mensagem_fora_do_horario": {
+          "description": "Mostrada no lugar do link quando o atendimento está fechado",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Mensagem Fora Do Horario",
+          "type": "string"
+        }
+      },
+      "required": [
+        "whatsapp",
+        "dias",
+        "abre",
+        "fecha",
+        "mensagem_whatsapp",
+        "mensagem_fora_do_horario"
+      ],
+      "title": "AtendimentoHumano",
+      "type": "object"
+    },
+    "BuscaPrestadores": {
+      "additionalProperties": false,
+      "properties": {
+        "sinonimos": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Termo informal → termo que aparece nas tags ou categorias. Ex.: cachorro → caes",
+          "title": "Sinonimos",
+          "type": "object"
+        },
+        "cidades": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Cidade → UF, para achar prestadores cadastrados só com a UF",
+          "title": "Cidades",
+          "type": "object"
+        }
+      },
+      "required": [
+        "sinonimos",
+        "cidades"
+      ],
+      "title": "BuscaPrestadores",
+      "type": "object"
+    },
+    "Consentimento": {
+      "additionalProperties": false,
+      "properties": {
+        "validade_dias": {
+          "description": "Por quantos dias a autorização LGPD vale",
+          "maximum": 3650,
+          "minimum": 1,
+          "title": "Validade Dias",
+          "type": "integer"
+        },
+        "mensagem_pedido": {
+          "description": "Texto do card que pede a autorização",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Mensagem Pedido",
+          "type": "string"
+        },
+        "mensagem_revogacao": {
+          "description": "Resposta quando o usuário revoga a autorização",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Mensagem Revogacao",
+          "type": "string"
+        }
+      },
+      "required": [
+        "validade_dias",
+        "mensagem_pedido",
+        "mensagem_revogacao"
+      ],
+      "title": "Consentimento",
+      "type": "object"
+    },
+    "Documentos": {
+      "additionalProperties": false,
+      "properties": {
+        "dias_alerta_vencimento": {
+          "description": "Documento com validade dentro deste prazo aparece como 'vencendo'",
+          "maximum": 365,
+          "minimum": 1,
+          "title": "Dias Alerta Vencimento",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dias_alerta_vencimento"
+      ],
+      "title": "Documentos",
+      "type": "object"
+    },
+    "TrechoBase": {
+      "additionalProperties": false,
+      "properties": {
+        "categoria": {
+          "enum": [
+            "institutional",
+            "plan_rules",
+            "benefits",
+            "support"
+          ],
+          "title": "Categoria",
+          "type": "string"
+        },
+        "texto": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Texto",
+          "type": "string"
+        }
+      },
+      "required": [
+        "categoria",
+        "texto"
+      ],
+      "title": "TrechoBase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "$Schema"
+    },
+    "atendimento_humano": {
+      "$ref": "#/$defs/AtendimentoHumano"
+    },
+    "documentos": {
+      "$ref": "#/$defs/Documentos"
+    },
+    "consentimento": {
+      "$ref": "#/$defs/Consentimento"
+    },
+    "assistente": {
+      "$ref": "#/$defs/Assistente"
+    },
+    "base_conhecimento": {
+      "items": {
+        "$ref": "#/$defs/TrechoBase"
+      },
+      "minItems": 1,
+      "title": "Base Conhecimento",
+      "type": "array"
+    },
+    "busca_prestadores": {
+      "$ref": "#/$defs/BuscaPrestadores"
+    }
+  },
+  "required": [
+    "atendimento_humano",
+    "documentos",
+    "consentimento",
+    "assistente",
+    "base_conhecimento",
+    "busca_prestadores"
+  ],
+  "title": "Regras de negócio do SAFEpass",
+  "type": "object"
+}
