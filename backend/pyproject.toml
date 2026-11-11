@@ -1,0 +1,49 @@
+[project]
+name = "safepass-backend"
+version = "0.1.0"
+description = "API da plataforma SAFEpass (Residência Tecnológica UCB x Porto Digital)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi[standard]>=0.115,<1",
+    "sqlalchemy>=2.0,<2.1",
+    "psycopg[binary]>=3.2,<4",
+    "alembic>=1.14,<2",
+    "pydantic-settings>=2.7,<3",
+    "email-validator>=2.2,<3",
+    "argon2-cffi>=23.1,<26",
+    "pyjwt>=2.9,<3",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<9", "pytest-cov>=6,<7", "httpx>=0.28,<1", "ruff>=0.9,<1", "mypy>=1.14,<2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: precisa de PostgreSQL (TEST_DATABASE_URL)"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# Preserve official architecture documentation; format implementation files only.
+extend-exclude = ["CLAUDE.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["argon2.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+fail_under = 80
+omit = ["app/main.py", "scripts/*", "alembic/*"]
