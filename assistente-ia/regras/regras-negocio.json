@@ -1,0 +1,93 @@
+{
+  "$schema": "./regras-negocio.schema.json",
+  "atendimento_humano": {
+    "whatsapp": "5561999999999",
+    "dias": ["segunda", "terca", "quarta", "quinta", "sexta"],
+    "abre": "08:00",
+    "fecha": "18:00",
+    "mensagem_whatsapp": "Olá! Sou {nome} (ID {id_usuario}). Vim do Assistente SAFEpass. Assunto: {motivo}.",
+    "mensagem_fora_do_horario": "Nosso atendimento humano funciona de {horario_atendimento}. Deixe seu recado que retornamos no próximo horário útil."
+  },
+  "documentos": {
+    "dias_alerta_vencimento": 30
+  },
+  "consentimento": {
+    "validade_dias": 365,
+    "mensagem_pedido": "Para responder a esta solicitação, precisamos processar seus dados cadastrais e de seus dependentes. Você autoriza a consulta pelo assistente virtual?",
+    "mensagem_revogacao": "Pronto, revoguei sua autorização. Não vou mais consultar seus dados cadastrais nem os dos seus dependentes até você autorizar de novo."
+  },
+  "assistente": {
+    "mensagem_sem_resposta": "Não consegui responder agora. Posso te encaminhar ao atendimento humano?"
+  },
+  "base_conhecimento": [
+    {
+      "categoria": "institutional",
+      "texto": "O SAFEpass NÃO é plano de saúde; é um clube de benefícios e descontos em saúde e bem-estar, para o titular, seus dependentes e pets vinculados ao plano."
+    },
+    {
+      "categoria": "plan_rules",
+      "texto": "Carência de 7 dias para usar os benefícios após a contratação. Troca de plano a qualquer momento; o novo valor vale no próximo ciclo. Cancelamento sem multa, a qualquer momento, pelo app."
+    },
+    {
+      "categoria": "plan_rules",
+      "texto": "Pagamento por cartão de crédito, Pix ou boleto."
+    },
+    {
+      "categoria": "plan_rules",
+      "texto": "Dependentes aceitos: cônjuge, filhos (até 24 anos), pais e sogros. Pets (cães e gatos) também podem ser vinculados ao plano."
+    },
+    {
+      "categoria": "benefits",
+      "texto": "Pontos viram cupons no marketplace; cada cupom gera um token validado pelo prestador no atendimento. A forma de acúmulo de pontos depende do plano."
+    },
+    {
+      "categoria": "benefits",
+      "texto": "Documentos enviados passam por OCR e geram alertas {dias_alerta_vencimento} dias antes do vencimento."
+    },
+    {
+      "categoria": "support",
+      "texto": "Para revogar a autorização de uso dos dados pelo assistente, basta enviar a mensagem: Revogar consentimento de dados."
+    },
+    {
+      "categoria": "support",
+      "texto": "Atendimento humano via WhatsApp de {horario_atendimento} (horário de Brasília). Fora do horário, é possível deixar um recado."
+    }
+  ],
+  "busca_prestadores": {
+    "sinonimos": {
+      "cachorro": "caes",
+      "cachorros": "caes",
+      "cao": "caes",
+      "cadela": "caes",
+      "cachorra": "caes",
+      "gata": "gatos",
+      "gato": "gatos",
+      "pet": "veterinario",
+      "pets": "veterinario",
+      "animal": "veterinario",
+      "vet": "veterinario",
+      "dermato": "dermatologia",
+      "psico": "psicologo",
+      "nutri": "nutricionista",
+      "fisio": "fisioterapeuta",
+      "odonto": "dentista"
+    },
+    "cidades": {
+      "São Paulo": "SP",
+      "Campinas": "SP",
+      "Rio de Janeiro": "RJ",
+      "Belo Horizonte": "MG",
+      "Salvador": "BA",
+      "Brasília": "DF",
+      "Recife": "PE",
+      "Porto Alegre": "RS",
+      "Goiânia": "GO",
+      "Fortaleza": "CE",
+      "Curitiba": "PR",
+      "Belém": "PA",
+      "Florianópolis": "SC",
+      "Manaus": "AM",
+      "Natal": "RN"
+    }
+  }
+}

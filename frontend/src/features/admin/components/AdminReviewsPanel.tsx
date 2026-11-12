@@ -18,7 +18,11 @@ const RATINGS = [5, 4, 3, 2, 1] as const;
 export function AdminReviewsPanel() {
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const { data, isPending, isError, isPlaceholderData } = useAdminReviews({ rating, page, size: PAGE_SIZE });
+  const { data, isPending, isError, isPlaceholderData } = useAdminReviews({
+    rating,
+    page,
+    size: PAGE_SIZE,
+  });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1;
 
@@ -29,9 +33,10 @@ export function AdminReviewsPanel() {
 
   return (
     <section>
-      <h1 className="font-display text-2xl font-bold text-brand-blue">Avaliações da plataforma</h1>
-      <p className="mb-6 mt-1 text-sm text-slate-500">
-        Clique numa nota para ver só as avaliações daquele nível. Responda e escolha quais aparecem na página inicial.
+      <h1 className="font-display text-2xl font-bold text-primary">Avaliações da plataforma</h1>
+      <p className="mt-1 mb-6 text-sm text-slate-500">
+        Clique numa nota para ver só as avaliações daquele nível. Responda e escolha quais aparecem
+        na página inicial.
       </p>
 
       <div role="group" aria-label="Filtrar por estrelas" className="mb-6 flex flex-wrap gap-2">
@@ -40,7 +45,11 @@ export function AdminReviewsPanel() {
         </FilterChip>
         {RATINGS.map((n) => (
           <FilterChip key={n} active={rating === n} onClick={() => selectRating(n)}>
-            {n} <Star className="h-3.5 w-3.5 fill-brand-amber text-brand-amber" aria-label={n === 1 ? "estrela" : "estrelas"} />
+            {n}{" "}
+            <Star
+              className="h-3.5 w-3.5 fill-warning text-warning"
+              aria-label={n === 1 ? "estrela" : "estrelas"}
+            />
           </FilterChip>
         ))}
       </div>
@@ -52,10 +61,14 @@ export function AdminReviewsPanel() {
           ))}
         </div>
       ) : isError ? (
-        <p role="alert" className="text-sm text-brand-red">Não foi possível carregar as avaliações.</p>
+        <p role="alert" className="text-sm text-destructive">
+          Não foi possível carregar as avaliações.
+        </p>
       ) : data.items.length === 0 ? (
-        <p className="rounded-xl bg-brand-blue-soft/40 p-6 text-center text-sm text-slate-500">
-          {rating ? `Nenhuma avaliação com ${rating} ${rating === 1 ? "estrela" : "estrelas"}.` : "Nenhuma avaliação recebida ainda."}
+        <p className="rounded-xl bg-accent/40 p-6 text-center text-sm text-slate-500">
+          {rating
+            ? `Nenhuma avaliação com ${rating} ${rating === 1 ? "estrela" : "estrelas"}.`
+            : "Nenhuma avaliação recebida ainda."}
         </p>
       ) : (
         <>
@@ -69,13 +82,23 @@ export function AdminReviewsPanel() {
               {data.total} {data.total === 1 ? "avaliação" : "avaliações"}
             </span>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="pill" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              <Button
+                variant="outline"
+                size="pill"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
                 Anterior
               </Button>
               <span>
                 Página {page} de {totalPages}
               </span>
-              <Button variant="outline" size="pill" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              <Button
+                variant="outline"
+                size="pill"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
                 Próxima
               </Button>
             </div>
@@ -86,7 +109,15 @@ export function AdminReviewsPanel() {
   );
 }
 
-function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -94,7 +125,9 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className={cn(
         "flex items-center gap-1 rounded-full border px-4 py-1.5 text-sm font-medium transition",
-        active ? "border-brand-blue bg-brand-blue text-white" : "border-brand-blue-soft bg-white text-slate-600 hover:border-brand-blue",
+        active
+          ? "border-primary bg-primary text-white"
+          : "border-accent bg-white text-slate-600 hover:border-primary",
       )}
     >
       {children}
@@ -109,7 +142,7 @@ function ReviewItem({ review }: { review: AdminReview }) {
   const unchanged = draft.trim() === (review.admin_reply ?? "");
 
   return (
-    <li className="rounded-2xl border border-brand-blue-soft bg-white p-5">
+    <li className="rounded-2xl border border-accent bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <StarDisplay value={review.rating} />
@@ -126,12 +159,14 @@ function ReviewItem({ review }: { review: AdminReview }) {
             checked={review.is_published}
             disabled={publish.isPending}
             onChange={(e) => publish.mutate({ id: review.id, isPublished: e.target.checked })}
-            className="h-4 w-4 accent-brand-blue"
+            className="h-4 w-4 accent-primary"
           />
           Exibir na página inicial
         </label>
       </div>
-      {review.comment ? <p className="mt-3 text-sm leading-relaxed text-slate-600">{review.comment}</p> : null}
+      {review.comment ? (
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">{review.comment}</p>
+      ) : null}
 
       <form
         className="mt-4 space-y-2"
@@ -141,12 +176,28 @@ function ReviewItem({ review }: { review: AdminReview }) {
         }}
       >
         <label htmlFor={`reply-${review.id}`} className="text-xs font-medium text-slate-500">
-          {review.admin_reply ? `Sua resposta (${review.replied_at ? formatDate(review.replied_at) : ""})` : "Responder"}
+          {review.admin_reply
+            ? `Sua resposta (${review.replied_at ? formatDate(review.replied_at) : ""})`
+            : "Responder"}
         </label>
-        <Textarea id={`reply-${review.id}`} rows={2} maxLength={1000} value={draft} onChange={(e) => setDraft(e.target.value)} />
-        {reply.error ? <p role="alert" className="text-xs text-brand-red">{reply.error.message}</p> : null}
+        <Textarea
+          id={`reply-${review.id}`}
+          rows={2}
+          maxLength={1000}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        {reply.error ? (
+          <p role="alert" className="text-xs text-destructive">
+            {reply.error.message}
+          </p>
+        ) : null}
         <Button type="submit" size="pill" disabled={reply.isPending || !draft.trim() || unchanged}>
-          {reply.isPending ? "Salvando..." : review.admin_reply ? "Atualizar resposta" : "Enviar resposta"}
+          {reply.isPending
+            ? "Salvando..."
+            : review.admin_reply
+              ? "Atualizar resposta"
+              : "Enviar resposta"}
         </Button>
       </form>
     </li>

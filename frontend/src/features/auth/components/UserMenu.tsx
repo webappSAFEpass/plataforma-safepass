@@ -23,7 +23,7 @@ export function UserMenu({ user }: { user: User }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Menu da conta de ${user.full_name}`}
-        className="flex items-center gap-1 rounded-full p-1 text-brand-blue hover:bg-brand-blue-soft/60 focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="flex items-center gap-1 rounded-full p-1 text-primary hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-primary"
       >
         <UserCircle className="h-8 w-8" aria-hidden />
         <ChevronDown className="h-4 w-4" aria-hidden />

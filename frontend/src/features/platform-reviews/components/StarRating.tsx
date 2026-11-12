@@ -15,7 +15,7 @@ export function StarDisplay({ value, className }: { value: number; className?: s
         <Star
           key={n}
           aria-hidden
-          className={cn("h-5 w-5", n <= value ? "fill-brand-amber text-brand-amber" : "text-slate-300")}
+          className={cn("h-5 w-5", n <= value ? "fill-warning text-warning" : "text-slate-300")}
         />
       ))}
     </span>
@@ -34,7 +34,12 @@ export function StarRating({ value, onChange, label = "Sua nota" }: StarRatingPr
   const shown = hover || value;
 
   return (
-    <div role="radiogroup" aria-label={label} className="flex gap-1" onMouseLeave={() => setHover(0)}>
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="flex gap-1"
+      onMouseLeave={() => setHover(0)}
+    >
       {STARS.map((n) => (
         <button
           key={n}
@@ -44,13 +49,13 @@ export function StarRating({ value, onChange, label = "Sua nota" }: StarRatingPr
           aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}`}
           onMouseEnter={() => setHover(n)}
           onClick={() => onChange(n)}
-          className="rounded p-0.5 focus-visible:ring-2 focus-visible:ring-brand-blue"
+          className="rounded p-0.5 focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Star
             aria-hidden
             className={cn(
               "h-8 w-8 transition",
-              n <= shown ? "fill-brand-amber text-brand-amber" : "text-slate-300",
+              n <= shown ? "fill-warning text-warning" : "text-slate-300",
             )}
           />
         </button>

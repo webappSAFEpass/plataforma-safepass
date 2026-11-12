@@ -1,7 +1,8 @@
 node_modules
 .next
-coverage
-.env
-.env.local
-next-env.d.ts
+out
+.env*.local
+.DS_Store
 *.tsbuildinfo
+next-env.d.ts
+coverage

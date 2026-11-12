@@ -35,9 +35,11 @@ function ReferralForm() {
   if (create.isSuccess) {
     return (
       <div role="status" className="py-6 text-center">
-        <CheckCircle2 className="mx-auto h-12 w-12 text-brand-green" aria-hidden />
+        <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden />
         <DialogTitle className="mt-3 text-xl">Indicação enviada!</DialogTitle>
-        <DialogDescription>Nossa equipe vai entrar em contato com o profissional.</DialogDescription>
+        <DialogDescription>
+          Nossa equipe vai entrar em contato com o profissional.
+        </DialogDescription>
         <Button className="mt-6" onClick={closeDialog}>
           Fechar
         </Button>
@@ -48,8 +50,14 @@ function ReferralForm() {
   return (
     <>
       <DialogTitle>Indicar Profissional</DialogTitle>
-      <DialogDescription>Recomende alguém de confiança para fazer parte da plataforma.</DialogDescription>
-      <form onSubmit={handleSubmit((values) => create.mutate(values))} noValidate className="mt-6 space-y-4">
+      <DialogDescription>
+        Recomende alguém de confiança para fazer parte da plataforma.
+      </DialogDescription>
+      <form
+        onSubmit={handleSubmit((values) => create.mutate(values))}
+        noValidate
+        className="mt-6 space-y-4"
+      >
         <Field label="Nome do profissional" error={errors.professional_name?.message}>
           <Input placeholder="Dr. Carlos Mendes" {...register("professional_name")} />
         </Field>
@@ -60,11 +68,14 @@ function ReferralForm() {
           <Input placeholder="@drcarlos ou (61) 9xxxx-xxxx" {...register("contact")} />
         </Field>
         {create.error ? (
-          <p role="alert" className="rounded-lg bg-brand-red/10 px-3 py-2 text-sm text-brand-red">
+          <p
+            role="alert"
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {create.error.message}
           </p>
         ) : null}
-        <Button type="submit" variant="red" size="full" disabled={create.isPending}>
+        <Button type="submit" variant="cta" size="full" disabled={create.isPending}>
           {create.isPending ? "Enviando..." : "Enviar indicação"}
         </Button>
       </form>

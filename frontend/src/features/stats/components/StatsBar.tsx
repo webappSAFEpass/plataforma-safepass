@@ -19,7 +19,7 @@ export function StatsBar() {
   if (isError) return null; // faixa decorativa: sem dados, simplesmente não aparece
 
   return (
-    <section aria-label="Números da plataforma" className="bg-brand-blue">
+    <section aria-label="Números da plataforma" className="bg-primary">
       <dl className="mx-auto grid max-w-6xl grid-cols-2 md:grid-cols-4">
         {isPending
           ? [0, 1, 2, 3].map((i) => (
@@ -28,9 +28,12 @@ export function StatsBar() {
               </div>
             ))
           : items.map((item) => (
-              <div key={item.label} className="border-white/10 px-4 py-8 text-center md:border-r md:last:border-r-0">
+              <div
+                key={item.label}
+                className="border-white/10 px-4 py-8 text-center md:border-r md:last:border-r-0"
+              >
                 <dd className="font-display text-3xl font-bold text-white">{item.value}</dd>
-                <dt className="mt-1 text-xs font-medium uppercase tracking-widest text-white/60">
+                <dt className="mt-1 text-xs font-medium tracking-widest text-white/60 uppercase">
                   {item.label}
                 </dt>
               </div>

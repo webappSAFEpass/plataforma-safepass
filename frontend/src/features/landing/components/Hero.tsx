@@ -10,19 +10,19 @@ export function Hero() {
   return (
     <section className="grid min-h-[calc(100vh-4rem)] overflow-hidden lg:grid-cols-2">
       <div className="flex flex-col justify-center px-6 py-16 sm:px-12 lg:px-16">
-        <h1 className="mb-5 max-w-xl font-display text-4xl font-bold leading-tight text-ink lg:text-5xl">
-          Juntos para proteger tudo que mais <span className="text-brand-green">importa</span> para você
+        <h1 className="mb-5 max-w-xl font-display text-4xl leading-tight font-bold text-ink lg:text-5xl">
+          Juntos para proteger tudo que mais <span className="text-success">importa</span> para você
         </h1>
         <p className="mb-8 max-w-md leading-relaxed text-slate-500">
-          Conectamos você a serviços de saúde, proteção e bem-estar com confiança, benefícios reais e
-          tudo em um só lugar.
+          Conectamos você a serviços de saúde, proteção e bem-estar com confiança, benefícios reais
+          e tudo em um só lugar.
         </p>
         <ul className="flex flex-wrap gap-3">
           <li className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
-            <ShieldCheck className="h-5 w-5 text-brand-blue" aria-hidden /> Proteção Confiável
+            <ShieldCheck className="h-5 w-5 text-primary" aria-hidden /> Proteção Confiável
           </li>
           <li className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
-            <Heart className="h-5 w-5 text-brand-green" aria-hidden /> Bem-estar Integral
+            <Heart className="h-5 w-5 text-success" aria-hidden /> Bem-estar Integral
           </li>
         </ul>
       </div>

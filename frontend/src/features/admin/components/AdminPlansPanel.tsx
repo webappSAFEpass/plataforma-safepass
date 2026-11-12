@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,21 +14,37 @@ export function AdminPlansPanel() {
 
   return (
     <section>
-      <h1 className="font-display text-2xl font-bold text-brand-blue">Gerenciar planos</h1>
-      <p className="mb-6 mt-1 text-sm leading-relaxed text-slate-500">
-        Os valores são armazenados no PostgreSQL e alimentam a landing page e a contratação. Alterações em limites afetam novas contratações; revise-as antes de salvar.
+      <h1 className="font-display text-2xl font-bold text-primary">Gerenciar planos</h1>
+      <p className="mt-1 mb-6 text-sm leading-relaxed text-slate-500">
+        Os valores são armazenados no PostgreSQL e alimentam a landing page e a contratação.
+        Alterações em limites afetam novas contratações; revise-as antes de salvar.
       </p>
 
       {isPending ? (
-        <div className="space-y-4" aria-busy>{[0, 1, 2].map((index) => <Skeleton key={index} className="h-80" />)}</div>
+        <div className="space-y-4" aria-busy>
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-80" />
+          ))}
+        </div>
       ) : isError ? (
-        <div role="alert" className="rounded-xl border border-brand-red/20 bg-brand-red/5 p-5 text-sm text-slate-600">
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-sm text-slate-600"
+        >
           <p>Não foi possível carregar os planos.</p>
-          <button type="button" onClick={() => refetch()} className="mt-2 font-semibold text-brand-blue underline">Tentar novamente</button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-2 font-semibold text-primary underline"
+          >
+            Tentar novamente
+          </button>
         </div>
       ) : (
         <div className="space-y-5">
-          {plans.map((plan) => <AdminPlanEditor key={plan.id} plan={plan} />)}
+          {plans.map((plan) => (
+            <AdminPlanEditor key={plan.id} plan={plan} />
+          ))}
         </div>
       )}
     </section>
@@ -57,7 +73,9 @@ function toDraft(plan: AdminPlan): PlanDraft {
     highlighted: plan.highlighted,
     active: plan.is_active,
     sortOrder: String(plan.sort_order),
-    featuresText: plan.features.map((feature) => `${feature.included ? "[x]" : "[ ]"} ${feature.label}`).join("\n"),
+    featuresText: plan.features
+      .map((feature) => `${feature.included ? "[x]" : "[ ]"} ${feature.label}`)
+      .join("\n"),
   };
 }
 
@@ -66,7 +84,12 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
   const [draft, setDraft] = useState<PlanDraft>(() => toDraft(plan));
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  useEffect(() => setDraft(toDraft(plan)), [plan]);
+  // Reidrata o rascunho quando o plano muda no servidor (ex.: após salvar), sem efeito.
+  const [syncedPlan, setSyncedPlan] = useState(plan);
+  if (plan !== syncedPlan) {
+    setSyncedPlan(plan);
+    setDraft(toDraft(plan));
+  }
 
   function set<K extends keyof PlanDraft>(key: K, value: PlanDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -82,7 +105,12 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
       setValidationError("Informe um nome com pelo menos 2 caracteres.");
       return;
     }
-    if (!draft.price.trim() || !Number.isFinite(priceNumber) || priceNumber < 0 || priceNumber > 1_000_000) {
+    if (
+      !draft.price.trim() ||
+      !Number.isFinite(priceNumber) ||
+      priceNumber < 0 ||
+      priceNumber > 1_000_000
+    ) {
       setValidationError("Informe um preço mensal válido.");
       return;
     }
@@ -96,12 +124,17 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
       return;
     }
 
-    const featureLines = draft.featuresText.split("\n").map((line) => line.trim()).filter(Boolean);
+    const featureLines = draft.featuresText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
     const features: { label: string; included: boolean }[] = [];
     for (const line of featureLines) {
       const match = line.match(/^\[(x| )\]\s+(.+)$/i);
       if (!match) {
-        setValidationError("Cada benefício deve começar com [x] ou [ ] e depois o nome do benefício.");
+        setValidationError(
+          "Cada benefício deve começar com [x] ou [ ] e depois o nome do benefício.",
+        );
         return;
       }
       const label = (match[2] ?? "").trim();
@@ -113,13 +146,21 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
     }
 
     const maxDependents = draft.maxDependents.trim() === "" ? null : Number(draft.maxDependents);
-    const monthlyReviewLimit = draft.monthlyReviewLimit.trim() === "" ? null : Number(draft.monthlyReviewLimit);
+    const monthlyReviewLimit =
+      draft.monthlyReviewLimit.trim() === "" ? null : Number(draft.monthlyReviewLimit);
     if (maxDependents !== null && (!Number.isInteger(maxDependents) || maxDependents < 0)) {
-      setValidationError("O limite de dependentes deve ser zero ou um inteiro positivo. Deixe vazio para ilimitado.");
+      setValidationError(
+        "O limite de dependentes deve ser zero ou um inteiro positivo. Deixe vazio para ilimitado.",
+      );
       return;
     }
-    if (monthlyReviewLimit !== null && (!Number.isInteger(monthlyReviewLimit) || monthlyReviewLimit < 0)) {
-      setValidationError("O limite de avaliações deve ser zero ou um inteiro positivo. Deixe vazio para ilimitado.");
+    if (
+      monthlyReviewLimit !== null &&
+      (!Number.isInteger(monthlyReviewLimit) || monthlyReviewLimit < 0)
+    ) {
+      setValidationError(
+        "O limite de avaliações deve ser zero ou um inteiro positivo. Deixe vazio para ilimitado.",
+      );
       return;
     }
 
@@ -140,57 +181,152 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
   }
 
   return (
-    <article className="rounded-2xl border border-brand-blue-soft bg-white p-5 shadow-sm sm:p-6">
+    <article className="rounded-2xl border border-accent bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-xl font-bold text-brand-blue">{plan.name}</h2>
-            <span className="rounded-full bg-brand-blue-soft/70 px-2.5 py-1 text-xs font-semibold text-brand-blue">{plan.code}</span>
-            {!plan.is_active ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">Inativo</span> : null}
+            <h2 className="font-display text-xl font-bold text-primary">{plan.name}</h2>
+            <span className="rounded-full bg-accent/70 px-2.5 py-1 text-xs font-semibold text-primary">
+              {plan.code}
+            </span>
+            {!plan.is_active ? (
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                Inativo
+              </span>
+            ) : null}
           </div>
-          <p className="mt-1 text-sm text-slate-500">Preço atual: {formatCents(plan.price_cents)} / mês · Multiplicador de pontos x{plan.points_multiplier}</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Preço atual: {formatCents(plan.price_cents)} / mês · Multiplicador de pontos x
+            {plan.points_multiplier}
+          </p>
         </div>
       </div>
 
       <form onSubmit={save} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nome do plano">
-            <input value={draft.name} onChange={(event) => set("name", event.target.value)} maxLength={60} required className="admin-input" />
+            <input
+              value={draft.name}
+              onChange={(event) => set("name", event.target.value)}
+              maxLength={60}
+              required
+              className="admin-input"
+            />
           </Field>
           <Field label="Preço mensal (R$)">
-            <input value={draft.price} onChange={(event) => set("price", event.target.value)} inputMode="decimal" required className="admin-input" aria-describedby={`price-help-${plan.code}`} />
-            <span id={`price-help-${plan.code}`} className="text-xs text-slate-400">Use vírgula ou ponto para os centavos.</span>
+            <input
+              value={draft.price}
+              onChange={(event) => set("price", event.target.value)}
+              inputMode="decimal"
+              required
+              className="admin-input"
+              aria-describedby={`price-help-${plan.code}`}
+            />
+            <span id={`price-help-${plan.code}`} className="text-xs text-slate-400">
+              Use vírgula ou ponto para os centavos.
+            </span>
           </Field>
           <Field label="Máximo de dependentes">
-            <input value={draft.maxDependents} onChange={(event) => set("maxDependents", event.target.value)} type="number" min={0} max={10000} placeholder="Ilimitado" className="admin-input" />
+            <input
+              value={draft.maxDependents}
+              onChange={(event) => set("maxDependents", event.target.value)}
+              type="number"
+              min={0}
+              max={10000}
+              placeholder="Ilimitado"
+              className="admin-input"
+            />
           </Field>
           <Field label="Avaliações por mês">
-            <input value={draft.monthlyReviewLimit} onChange={(event) => set("monthlyReviewLimit", event.target.value)} type="number" min={0} max={100000} placeholder="Ilimitado" className="admin-input" />
+            <input
+              value={draft.monthlyReviewLimit}
+              onChange={(event) => set("monthlyReviewLimit", event.target.value)}
+              type="number"
+              min={0}
+              max={100000}
+              placeholder="Ilimitado"
+              className="admin-input"
+            />
           </Field>
           <Field label="Multiplicador de pontos">
-            <input value={draft.pointsMultiplier} onChange={(event) => set("pointsMultiplier", event.target.value)} type="number" min={1} max={100} required className="admin-input" />
+            <input
+              value={draft.pointsMultiplier}
+              onChange={(event) => set("pointsMultiplier", event.target.value)}
+              type="number"
+              min={1}
+              max={100}
+              required
+              className="admin-input"
+            />
           </Field>
           <Field label="Ordem de exibição">
-            <input value={draft.sortOrder} onChange={(event) => set("sortOrder", event.target.value)} type="number" min={0} max={100} required className="admin-input" />
-            <span className="text-xs text-slate-400">Valores menores aparecem primeiro na página de planos.</span>
+            <input
+              value={draft.sortOrder}
+              onChange={(event) => set("sortOrder", event.target.value)}
+              type="number"
+              min={0}
+              max={100}
+              required
+              className="admin-input"
+            />
+            <span className="text-xs text-slate-400">
+              Valores menores aparecem primeiro na página de planos.
+            </span>
           </Field>
         </div>
 
         <Field label="Benefícios">
-          <Textarea rows={5} value={draft.featuresText} onChange={(event) => set("featuresText", event.target.value)} aria-describedby={`features-help-${plan.code}`} />
-          <span id={`features-help-${plan.code}`} className="text-xs text-slate-400">Uma linha por benefício: [x] incluído ou [ ] não incluído.</span>
+          <Textarea
+            rows={5}
+            value={draft.featuresText}
+            onChange={(event) => set("featuresText", event.target.value)}
+            aria-describedby={`features-help-${plan.code}`}
+          />
+          <span id={`features-help-${plan.code}`} className="text-xs text-slate-400">
+            Uma linha por benefício: [x] incluído ou [ ] não incluído.
+          </span>
         </Field>
 
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={draft.highlighted} onChange={(event) => set("highlighted", event.target.checked)} className="h-4 w-4 accent-brand-blue" />Destacar na página de planos</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={draft.active} onChange={(event) => set("active", event.target.checked)} className="h-4 w-4 accent-brand-blue" />Plano ativo e disponível</label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={draft.highlighted}
+              onChange={(event) => set("highlighted", event.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            Destacar na página de planos
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={draft.active}
+              onChange={(event) => set("active", event.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            Plano ativo e disponível
+          </label>
         </div>
 
-        {validationError ? <p role="alert" className="text-sm text-brand-red">{validationError}</p> : null}
-        {mutation.error ? <p role="alert" className="text-sm text-brand-red">{mutation.error.message}</p> : null}
-        {mutation.isSuccess ? <p role="status" className="text-sm text-brand-green">Plano atualizado e publicado para novas consultas.</p> : null}
+        {validationError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {validationError}
+          </p>
+        ) : null}
+        {mutation.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {mutation.error.message}
+          </p>
+        ) : null}
+        {mutation.isSuccess ? (
+          <p role="status" className="text-sm text-success">
+            Plano atualizado e publicado para novas consultas.
+          </p>
+        ) : null}
         <div className="flex justify-end">
-          <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Salvando..." : "Salvar alterações"}</Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? "Salvando..." : "Salvar alterações"}
+          </Button>
         </div>
       </form>
     </article>
@@ -198,5 +334,10 @@ function AdminPlanEditor({ plan }: { plan: AdminPlan }) {
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">{label}{children}</label>;
+  return (
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+      {label}
+      {children}
+    </label>
+  );
 }

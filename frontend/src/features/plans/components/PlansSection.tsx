@@ -8,9 +8,9 @@ export function PlansSection() {
   const { data: plans, isPending, isError, refetch } = usePlans();
 
   return (
-    <section id="planos" className="scroll-mt-20 bg-brand-blue-soft/30 px-6 py-20">
+    <section id="planos" className="scroll-mt-20 bg-accent/30 px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <h2 className="mb-3 text-center font-display text-3xl font-bold text-brand-blue">
+        <h2 className="mb-3 text-center font-display text-3xl font-bold text-primary">
           A proteção que cabe no seu bolso
         </h2>
         <p className="mx-auto mb-14 max-w-xl text-center text-slate-500">
@@ -25,7 +25,11 @@ export function PlansSection() {
         ) : isError ? (
           <p role="alert" className="text-center text-sm text-slate-500">
             Não foi possível carregar os planos.{" "}
-            <button type="button" onClick={() => refetch()} className="font-semibold text-brand-blue underline">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="font-semibold text-primary underline"
+            >
               Tentar de novo
             </button>
           </p>

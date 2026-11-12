@@ -26,9 +26,27 @@ interface TypeOption {
 }
 
 const TYPE_OPTIONS: TypeOption[] = [
-  { type: "user", label: "Sou Usuário", description: "Proteção familiar e benefícios", icon: Heart, tone: "bg-brand-blue-soft text-brand-blue" },
-  { type: "provider", label: "Sou Prestador", description: "Aumente sua visibilidade", icon: UserPlus, tone: "bg-brand-green-soft text-brand-green" },
-  { type: "company", label: "Sou Empresa", description: "Benefícios para colaboradores", icon: Briefcase, tone: "bg-brand-amber-soft text-brand-amber" },
+  {
+    type: "user",
+    label: "Sou Usuário",
+    description: "Proteção familiar e benefícios",
+    icon: Heart,
+    tone: "bg-accent text-primary",
+  },
+  {
+    type: "provider",
+    label: "Sou Prestador",
+    description: "Aumente sua visibilidade",
+    icon: UserPlus,
+    tone: "bg-success-soft text-success",
+  },
+  {
+    type: "company",
+    label: "Sou Empresa",
+    description: "Benefícios para colaboradores",
+    icon: Briefcase,
+    tone: "bg-warning-soft text-warning",
+  },
 ];
 
 export function RegisterDialog() {
@@ -38,13 +56,23 @@ export function RegisterDialog() {
       <DialogContent>
         <Logo className="mb-6" />
         {/* key: reinicia o passo quando o diálogo é reaberto com outro tipo pré-selecionado */}
-        <RegisterFlow key={options.accountType ?? "none"} initialType={options.accountType} onLogin={() => openDialog("login")} />
+        <RegisterFlow
+          key={options.accountType ?? "none"}
+          initialType={options.accountType}
+          onLogin={() => openDialog("login")}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
-function RegisterFlow({ initialType, onLogin }: { initialType?: AccountType; onLogin: () => void }) {
+function RegisterFlow({
+  initialType,
+  onLogin,
+}: {
+  initialType?: AccountType;
+  onLogin: () => void;
+}) {
   const [type, setType] = useState<AccountType | null>(initialType ?? null);
   const selected = TYPE_OPTIONS.find((option) => option.type === type);
 
@@ -59,7 +87,7 @@ function RegisterFlow({ initialType, onLogin }: { initialType?: AccountType; onL
               key={value}
               type="button"
               onClick={() => setType(value)}
-              className="flex w-full items-center gap-4 rounded-xl border-2 border-brand-blue-soft p-4 text-left transition hover:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue"
+              className="flex w-full items-center gap-4 rounded-xl border-2 border-accent p-4 text-left transition hover:border-primary focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}>
                 <Icon className="h-5 w-5" aria-hidden />
@@ -73,7 +101,11 @@ function RegisterFlow({ initialType, onLogin }: { initialType?: AccountType; onL
         </div>
         <p className="mt-5 text-center text-sm text-slate-500">
           Já tem conta?{" "}
-          <button type="button" onClick={onLogin} className="font-semibold text-brand-blue hover:underline">
+          <button
+            type="button"
+            onClick={onLogin}
+            className="font-semibold text-primary hover:underline"
+          >
             Faça login
           </button>
         </p>
@@ -81,7 +113,9 @@ function RegisterFlow({ initialType, onLogin }: { initialType?: AccountType; onL
     );
   }
 
-  return <RegisterForm accountType={selected.type} label={selected.label} onBack={() => setType(null)} />;
+  return (
+    <RegisterForm accountType={selected.type} label={selected.label} onBack={() => setType(null)} />
+  );
 }
 
 function RegisterForm({
@@ -116,7 +150,11 @@ function RegisterForm({
 
   return (
     <>
-      <button type="button" onClick={onBack} className="mb-3 flex items-center gap-1 text-xs text-slate-500 hover:text-brand-blue">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-3 flex items-center gap-1 text-xs text-slate-500 hover:text-primary"
+      >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Trocar perfil
       </button>
       <DialogTitle>Seus dados</DialogTitle>
@@ -129,17 +167,30 @@ function RegisterForm({
           <Input autoComplete="name" placeholder="Seu nome" {...register("full_name")} />
         </Field>
         <Field label="E-mail" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" placeholder="voce@exemplo.com" {...register("email")} />
+          <Input
+            type="email"
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+            {...register("email")}
+          />
         </Field>
         <Field label="Senha" error={errors.password?.message}>
-          <Input type="password" autoComplete="new-password" placeholder="Mínimo de 8 caracteres, com letras e números" {...register("password")} />
+          <Input
+            type="password"
+            autoComplete="new-password"
+            placeholder="Mínimo de 8 caracteres, com letras e números"
+            {...register("password")}
+          />
         </Field>
         {registerMutation.error ? (
-          <p role="alert" className="rounded-lg bg-brand-red/10 px-3 py-2 text-sm text-brand-red">
+          <p
+            role="alert"
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {registerMutation.error.message}
           </p>
         ) : null}
-        <Button type="submit" variant="red" size="full" disabled={registerMutation.isPending}>
+        <Button type="submit" variant="cta" size="full" disabled={registerMutation.isPending}>
           {registerMutation.isPending ? "Criando conta..." : "Criar conta grátis"}
         </Button>
       </form>

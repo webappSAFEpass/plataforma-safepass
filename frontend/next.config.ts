@@ -1,10 +1,11 @@
 import type { NextConfig } from "next";
 
-// A API é servida pelo mesmo domínio do site via rewrite: o navegador só fala com o Next,
-// então os cookies httpOnly funcionam sem CORS. API_URL é lida no BUILD (ver Dockerfile).
+// A API do backend é servida pelo mesmo domínio do site via rewrite: o navegador só fala com o
+// Next, então os cookies httpOnly funcionam sem CORS. API_URL é lida no BUILD (ver Dockerfile).
 const apiUrl = process.env.API_URL ?? "http://localhost:8000";
 
-const config: NextConfig = {
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
   output: "standalone",
   images: {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
@@ -14,4 +15,4 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+export default nextConfig;

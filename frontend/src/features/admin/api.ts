@@ -14,7 +14,11 @@ export interface ListReviewsParams {
   size: number;
 }
 
-export function listPlatformReviews({ rating, page, size }: ListReviewsParams): Promise<Page<AdminReview>> {
+export function listPlatformReviews({
+  rating,
+  page,
+  size,
+}: ListReviewsParams): Promise<Page<AdminReview>> {
   return apiFetch("/admin/platform-reviews", { query: { rating, page, size } });
 }
 
@@ -23,7 +27,10 @@ export function replyToReview(id: string, reply: string): Promise<AdminReview> {
 }
 
 export function setReviewPublished(id: string, isPublished: boolean): Promise<AdminReview> {
-  return apiFetch(`/admin/platform-reviews/${id}`, { method: "PATCH", body: { is_published: isPublished } });
+  return apiFetch(`/admin/platform-reviews/${id}`, {
+    method: "PATCH",
+    body: { is_published: isPublished },
+  });
 }
 
 export function fetchAdminDashboard(): Promise<AdminDashboard> {

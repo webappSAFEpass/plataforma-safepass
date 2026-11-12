@@ -21,7 +21,7 @@ export function Field({ label, error, children }: FieldProps) {
         "aria-describedby": error ? errorId : undefined,
       })}
       {error ? (
-        <p id={errorId} role="alert" className="text-xs text-brand-red">
+        <p id={errorId} role="alert" className="text-xs text-destructive">
           {error}
         </p>
       ) : null}

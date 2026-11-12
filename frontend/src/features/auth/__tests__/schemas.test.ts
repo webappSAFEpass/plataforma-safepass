@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { registerSchema, resetPasswordSchema } from "@/features/auth/schemas";
 import { homePathFor } from "@/features/auth/utils";
 
-const valid = { full_name: "Ana Lima", email: "ana@exemplo.com", password: "Senha123", account_type: "user" } as const;
+const valid = {
+  full_name: "Ana Lima",
+  email: "ana@exemplo.com",
+  password: "Senha123",
+  account_type: "user",
+} as const;
 
 describe("registerSchema", () => {
   it("aceita dados válidos", () => {

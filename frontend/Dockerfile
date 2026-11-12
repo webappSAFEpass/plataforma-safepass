@@ -5,9 +5,7 @@ WORKDIR /app
 ARG API_URL=http://backend:8000
 ENV API_URL=$API_URL NEXT_TELEMETRY_DISABLED=1
 COPY . .
-# Instala a partir do package.json porque o pacote recebido ainda não traz pnpm-lock.yaml.
-# Quando o lockfile for versionado, a instalação passa a usar --frozen-lockfile.
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
 FROM node:22-alpine AS runner

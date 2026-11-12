@@ -23,7 +23,7 @@ export function TestimonialsSection() {
   return (
     <section className="bg-white px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <h2 className="mb-14 text-center font-display text-3xl font-bold text-brand-blue">
+        <h2 className="mb-14 text-center font-display text-3xl font-bold text-primary">
           Vozes da nossa comunidade
         </h2>
 
@@ -39,7 +39,7 @@ export function TestimonialsSection() {
             <button
               type="button"
               onClick={() => openDialog("feedback")}
-              className="mt-2 font-semibold text-brand-blue underline"
+              className="mt-2 font-semibold text-primary underline"
             >
               Seja o primeiro a avaliar a plataforma
             </button>
@@ -48,7 +48,10 @@ export function TestimonialsSection() {
           <>
             <div className="grid gap-6 md:grid-cols-3">
               {visible.map((review) => (
-                <figure key={review.id} className="rounded-2xl border border-brand-blue-soft bg-brand-blue-soft/20 p-6">
+                <figure
+                  key={review.id}
+                  className="rounded-2xl border border-accent bg-accent/20 p-6"
+                >
                   <StarDisplay value={review.rating} />
                   {review.comment ? (
                     <blockquote className="mt-3 text-sm leading-relaxed text-slate-600">
@@ -56,8 +59,12 @@ export function TestimonialsSection() {
                     </blockquote>
                   ) : null}
                   <figcaption className="mt-4">
-                    <span className="block text-sm font-semibold text-ink">{review.author_name}</span>
-                    <span className="block text-xs text-slate-400">{PROFILE_LABELS[review.reviewer_profile]}</span>
+                    <span className="block text-sm font-semibold text-ink">
+                      {review.author_name}
+                    </span>
+                    <span className="block text-xs text-slate-400">
+                      {PROFILE_LABELS[review.reviewer_profile]}
+                    </span>
                   </figcaption>
                 </figure>
               ))}
@@ -69,7 +76,7 @@ export function TestimonialsSection() {
                   aria-label="Anterior"
                   disabled={page === 0}
                   onClick={() => setPage((p) => p - 1)}
-                  className="rounded-full border border-brand-blue-soft p-2 text-brand-blue disabled:opacity-30"
+                  className="rounded-full border border-accent p-2 text-primary disabled:opacity-30"
                 >
                   <ChevronLeft className="h-5 w-5" aria-hidden />
                 </button>
@@ -81,7 +88,10 @@ export function TestimonialsSection() {
                       aria-label={`Página ${i + 1}`}
                       aria-current={i === page}
                       onClick={() => setPage(i)}
-                      className={cn("h-2.5 rounded-full transition-all", i === page ? "w-6 bg-brand-blue" : "w-2.5 bg-brand-blue-soft")}
+                      className={cn(
+                        "h-2.5 rounded-full transition-all",
+                        i === page ? "w-6 bg-primary" : "w-2.5 bg-accent",
+                      )}
                     />
                   ))}
                 </div>
@@ -90,7 +100,7 @@ export function TestimonialsSection() {
                   aria-label="Próximo"
                   disabled={page === totalPages - 1}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-full border border-brand-blue-soft p-2 text-brand-blue disabled:opacity-30"
+                  className="rounded-full border border-accent p-2 text-primary disabled:opacity-30"
                 >
                   <ChevronRight className="h-5 w-5" aria-hidden />
                 </button>

@@ -2,14 +2,23 @@
 
 import { Button } from "@/components/ui/button";
 
-export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
+export default function Error({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
-    <div className="mx-auto max-w-md px-6 py-24 text-center">
-      <h1 className="font-display text-3xl font-bold text-brand-blue">Algo deu errado</h1>
-      <p className="mt-3 text-slate-500">Tente novamente em instantes.</p>
-      <Button className="mt-6" onClick={reset}>
-        Tentar de novo
-      </Button>
-    </div>
+    <main className="grid min-h-[60vh] place-items-center px-4 text-center">
+      <div>
+        <h1 className="font-display text-2xl font-extrabold tracking-[-.05em] text-primary">
+          Algo deu errado
+        </h1>
+        <p className="mt-2 text-sm text-primary">Tente novamente em alguns instantes.</p>
+        <Button className="mt-6" onClick={reset}>
+          Tentar de novo
+        </Button>
+      </div>
+    </main>
   );
 }

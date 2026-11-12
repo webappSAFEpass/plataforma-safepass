@@ -1,5 +1,5 @@
 .next
-node_modules
 coverage
 pnpm-lock.yaml
-src/lib/api/schema.d.ts
+src/features/assistant/lib/api.gen.ts
+prototipos

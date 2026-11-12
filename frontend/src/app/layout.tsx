@@ -1,26 +1,37 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
+import { Inter, Sora } from "next/font/google";
+
+import { Providers } from "@/app/providers";
+import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
-import { Providers } from "@/app/providers";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { SiteHeader } from "@/components/layout/SiteHeader";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const sora = Sora({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-sora",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "SAFEpass — Juntos para proteger tudo que mais importa para você",
-  description:
-    "Conectamos você a serviços de saúde, proteção e bem-estar com confiança, benefícios reais e tudo em um só lugar.",
+  title: { default: "SAFEpass", template: "%s · SAFEpass" },
+  description: "Plataforma SAFEpass de benefícios em saúde e bem-estar.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#3f6886",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body className="bg-white font-sans text-ink antialiased">
-        <Providers>
-          <SiteHeader />
-          <main className="pt-16">{children}</main>
-          <SiteFooter />
-        </Providers>
+    <html lang="pt-BR" className={`${inter.variable} ${sora.variable}`}>
+      <body>
+        <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   );

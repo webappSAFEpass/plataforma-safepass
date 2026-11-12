@@ -74,7 +74,12 @@ function LoginForm({ onForgot, onRegister }: { onForgot: () => void; onRegister:
       <DialogDescription>Faça login na sua conta SAFEpass</DialogDescription>
       <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4">
         <Field label="E-mail" error={errors.email?.message}>
-          <Input type="email" autoComplete="email" placeholder="voce@exemplo.com" {...register("email")} />
+          <Input
+            type="email"
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+            {...register("email")}
+          />
         </Field>
         <Field label="Senha" error={errors.password?.message}>
           <Input
@@ -88,13 +93,16 @@ function LoginForm({ onForgot, onRegister }: { onForgot: () => void; onRegister:
           <button
             type="button"
             onClick={onForgot}
-            className="text-xs font-medium text-brand-red hover:underline"
+            className="text-xs font-medium text-destructive hover:underline"
           >
             Esqueceu sua senha? Recupere aqui!
           </button>
         </div>
         {login.error ? (
-          <p role="alert" className="rounded-lg bg-brand-red/10 px-3 py-2 text-sm text-brand-red">
+          <p
+            role="alert"
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {login.error.message}
           </p>
         ) : null}
@@ -104,7 +112,11 @@ function LoginForm({ onForgot, onRegister }: { onForgot: () => void; onRegister:
       </form>
       <p className="mt-5 text-center text-sm text-slate-500">
         Não tem conta ainda?{" "}
-        <button type="button" onClick={onRegister} className="font-semibold text-brand-blue hover:underline">
+        <button
+          type="button"
+          onClick={onRegister}
+          className="font-semibold text-primary hover:underline"
+        >
           Cadastre-se!
         </button>
       </p>
@@ -126,11 +138,14 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
       <DialogTitle>Recuperar senha</DialogTitle>
       <DialogDescription>Enviaremos um link para o e-mail cadastrado.</DialogDescription>
       {forgot.isSuccess ? (
-        <div role="status" className="mt-6 flex gap-3 rounded-xl bg-brand-green-soft p-4 text-sm text-ink">
-          <MailCheck className="h-5 w-5 shrink-0 text-brand-green" aria-hidden />
+        <div
+          role="status"
+          className="mt-6 flex gap-3 rounded-xl bg-success-soft p-4 text-sm text-ink"
+        >
+          <MailCheck className="h-5 w-5 shrink-0 text-success" aria-hidden />
           <p>
-            Se <strong>{getValues("email")}</strong> estiver cadastrado, você receberá as instruções em
-            instantes. O link vale por 30 minutos.
+            Se <strong>{getValues("email")}</strong> estiver cadastrado, você receberá as instruções
+            em instantes. O link vale por 30 minutos.
           </p>
         </div>
       ) : (
@@ -140,10 +155,18 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
           className="mt-6 space-y-4"
         >
           <Field label="E-mail" error={errors.email?.message}>
-            <Input type="email" autoComplete="email" placeholder="voce@exemplo.com" {...register("email")} />
+            <Input
+              type="email"
+              autoComplete="email"
+              placeholder="voce@exemplo.com"
+              {...register("email")}
+            />
           </Field>
           {forgot.error ? (
-            <p role="alert" className="rounded-lg bg-brand-red/10 px-3 py-2 text-sm text-brand-red">
+            <p
+              role="alert"
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {forgot.error.message}
             </p>
           ) : null}
@@ -152,7 +175,11 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
           </Button>
         </form>
       )}
-      <button type="button" onClick={onBack} className="mt-5 text-sm text-slate-500 hover:text-brand-blue">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-5 text-sm text-slate-500 hover:text-primary"
+      >
         ← Voltar ao login
       </button>
     </>

@@ -8,7 +8,7 @@ export default async function PlanCheckoutPage({ params }: { params: Promise<{ c
   const { code } = await params;
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
-      <h1 className="mb-10 font-display text-3xl font-bold text-brand-blue">Contratar plano</h1>
+      <h1 className="mb-10 font-display text-3xl font-bold text-primary">Contratar plano</h1>
       <CheckoutPanel planCode={code} />
     </div>
   );

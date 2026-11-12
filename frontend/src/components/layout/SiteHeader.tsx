@@ -35,7 +35,10 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Logo />
         <nav aria-label="Principal" className="flex items-center gap-4 sm:gap-8">
-          <Link href="/#planos" className="hidden text-sm font-medium text-slate-600 hover:text-brand-blue sm:block">
+          <Link
+            href="/#planos"
+            className="hidden text-sm font-medium text-slate-600 hover:text-primary sm:block"
+          >
             Conheça Nossos Planos
           </Link>
           {me ? (
@@ -45,11 +48,11 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={() => openDialog("login")}
-                className="text-sm font-medium text-slate-600 hover:text-brand-blue"
+                className="text-sm font-medium text-slate-600 hover:text-primary"
               >
                 Faça Login
               </button>
-              <Button variant="red" size="pill" onClick={() => openDialog("register")}>
+              <Button variant="cta" size="pill" onClick={() => openDialog("register")}>
                 Criar Conta Grátis
               </Button>
             </>

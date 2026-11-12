@@ -24,7 +24,7 @@ export function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <p role="alert" className="text-sm text-brand-red">
+      <p role="alert" className="text-sm text-destructive">
         Link inválido. Peça um novo e-mail de recuperação na tela de login.
       </p>
     );
@@ -34,7 +34,7 @@ export function ResetPasswordForm() {
     return (
       <div role="status" className="space-y-4">
         <p className="flex items-center gap-2 text-sm text-ink">
-          <CheckCircle2 className="h-5 w-5 text-brand-green" aria-hidden /> Senha alterada com sucesso.
+          <CheckCircle2 className="h-5 w-5 text-success" aria-hidden /> Senha alterada com sucesso.
         </p>
         <Button onClick={() => openDialog("login")} size="full">
           Entrar na minha conta
@@ -56,7 +56,7 @@ export function ResetPasswordForm() {
         <Input type="password" autoComplete="new-password" {...register("confirm")} />
       </Field>
       {reset.error ? (
-        <p role="alert" className="rounded-lg bg-brand-red/10 px-3 py-2 text-sm text-brand-red">
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {reset.error.message}
         </p>
       ) : null}
