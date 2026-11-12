@@ -141,7 +141,26 @@ uv run alembic upgrade head
 uv run fastapi dev app/main.py   # http://localhost:8000/docs
 ```
 
-> Algumas partes ainda estão chegando: o `backend/` ainda não tem código, e o frontend e o assistente entram pelos PRs #1 e #2. O `docker compose` para subir tudo junto vai ficar na raiz quando existir.
+O backend reúne os módulos dos Desafios 01 a 03. Veja [`backend/README.md`](backend/README.md) e [`backend/docs/INTEGRACAO_BACKENDS.md`](backend/docs/INTEGRACAO_BACKENDS.md).
+
+### Tudo junto com Docker
+
+Na raiz, sobe banco, migrations, backend, frontend e o Mailpit (e-mails de desenvolvimento). O assistente de IA ainda não está no compose.
+
+```bash
+docker compose up --build
+```
+
+| Serviço | URL |
+|---|---|
+| Site (Next.js) | http://localhost:3000 |
+| API / Swagger | http://localhost:8000/docs |
+| Mailpit | http://localhost:8025 |
+| PostgreSQL | localhost:5432 |
+
+O admin de desenvolvimento é `admin@example.com` / `Admin12345`, definido no `compose.yaml`. Use só localmente. `docker compose down -v` também apaga o banco local.
+
+O frontend fala com o backend pelo mesmo domínio: o Next reescreve `/api/v1/*` para `API_URL` (lida no build; veja `frontend/.env.example`). Sem Docker, copie `backend/.env.example` para `backend/.env` e rode o frontend com `pnpm dev`.
 
 ## Fluxo de trabalho
 

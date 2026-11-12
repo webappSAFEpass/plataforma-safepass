@@ -21,6 +21,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-subtle: var(--subtle);
+  --color-ink: var(--ink);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -72,6 +73,7 @@
   --muted: #f1f6fa;
   --muted-foreground: #718493;
   --subtle: #9aabb7;
+  --ink: #1a2e3b;
   --success: #2f9e5c;
   --success-soft: #d1f0e3;
   --warning: #f59f0c;

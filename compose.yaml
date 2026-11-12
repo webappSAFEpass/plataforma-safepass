@@ -1,0 +1,67 @@
+# Sobe tudo: docker compose up --build
+#   Site:        http://localhost:3000
+#   API (docs):  http://localhost:8000/docs
+#   E-mails dev: http://localhost:8025  (Mailpit: link de recuperação de senha aparece aqui)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: safepass
+      POSTGRES_PASSWORD: safepass
+      POSTGRES_DB: safepass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safepass"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+
+  migrate:
+    build: ./backend
+    command: sh -c "alembic upgrade head && python -m scripts.seed"
+    environment: &backend-env
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg://safepass:safepass@db:5432/safepass
+      JWT_SECRET: dev-insecure-secret-change-me-please-32b
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      TRUST_FORWARDED_FOR: "true"
+      COOKIE_SECURE: "false"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: Admin12345   # SOMENTE desenvolvimento
+      SEED_DEMO_DATA: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build: ./backend
+    environment: *backend-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
