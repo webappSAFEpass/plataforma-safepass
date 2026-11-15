@@ -15,6 +15,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-por \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 safepass
+# Arquivos dos documentos (DOCUMENTS_DIR): o usuário não-root precisa gravar aqui.
+RUN mkdir -p /app/storage/documents && chown -R safepass /app/storage
 COPY --from=build /app/.venv /app/.venv
 COPY app ./app
 COPY alembic ./alembic

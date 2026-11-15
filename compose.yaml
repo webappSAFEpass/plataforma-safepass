@@ -47,6 +47,8 @@ services:
   backend:
     build: ./backend
     environment: *backend-env
+    volumes:
+      - documents:/app/storage
     ports:
       - "8000:8000"
     depends_on:
@@ -65,3 +67,4 @@ services:
 
 volumes:
   pgdata:
+  documents:
