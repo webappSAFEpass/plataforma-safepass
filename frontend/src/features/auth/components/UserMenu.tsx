@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronDown, LayoutDashboard, LogOut, Home, ShieldCheck, UserCircle } from "lucide-react";
+import {
+  ChevronDown,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Home,
+  ShieldCheck,
+  UserCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -41,6 +49,13 @@ export function UserMenu({ user }: { user: User }) {
             <LayoutDashboard className="h-4 w-4" aria-hidden /> Meu Dashboard
           </Link>
         </DropdownMenuItem>
+        {user.role === "user" || user.role === "dependent" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/historico-medico">
+              <ClipboardList className="h-4 w-4" aria-hidden /> Histórico médico
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         {user.role === "admin" ? (
           <DropdownMenuItem asChild>
             <Link href="/admin/avaliacoes">

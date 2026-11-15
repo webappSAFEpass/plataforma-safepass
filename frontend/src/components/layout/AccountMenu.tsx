@@ -1,6 +1,13 @@
 "use client";
 
-import { BriefcaseBusiness, Building2, ChevronDown, LogOut, UserRound } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Building2,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -49,10 +56,17 @@ export function AccountMenu({ area }: { area: Area }) {
             Meu perfil
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onSelect={() => router.push(otherArea.home)}>
-          <OtherIcon className="text-primary" aria-hidden="true" />
-          Ir para {otherArea.key === "company" ? "Empresa" : "Prestador"}
-        </DropdownMenuItem>
+        {area.key === "user" ? (
+          <DropdownMenuItem onSelect={() => router.push("/painel")}>
+            <LayoutDashboard className="text-primary" aria-hidden="true" />
+            Meu painel
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={() => router.push(otherArea.home)}>
+            <OtherIcon className="text-primary" aria-hidden="true" />
+            Ir para {otherArea.key === "company" ? "Empresa" : "Prestador"}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="data-[highlighted]:text-destructive"

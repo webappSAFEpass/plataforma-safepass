@@ -3,3 +3,4 @@ coverage
 pnpm-lock.yaml
 src/features/assistant/lib/api.gen.ts
 prototipos
+public/mockServiceWorker.js
