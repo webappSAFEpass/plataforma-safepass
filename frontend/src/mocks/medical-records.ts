@@ -1,6 +1,5 @@
-// Handlers MSW do histórico médico (Squad 44) seguindo o contrato combinado com o backend
-// (/api/v1/documents, prescriptions, medications, vaccines, reminders). Guardam estado em memória
-// para o fluxo funcionar de ponta a ponta. Quando o backend subir, basta desligar o mock.
+// Handlers MSW do histórico médico (Squad 44) para os testes (Vitest). Seguem os tipos gerados do
+// OpenAPI dos módulos documents/medications e guardam estado em memória entre as chamadas de um teste.
 import { http, HttpResponse } from "msw";
 
 import type { MedicalDocument, Prescription } from "@/features/medical-records/types";
@@ -89,8 +88,8 @@ export function addMedication(
     prescription_id: prescriptionId,
     dependent_id: body.dependent_id ?? null,
     name: body.name,
-    dose: body.dose ?? null,
-    posology: body.posology ?? null,
+    dose: body.dose ?? "",
+    posology: body.posology ?? "",
     start_date: body.start_date ?? today(),
     duration_days: body.duration_days ?? null,
     first_dose: body.first_dose ?? "08:00",
@@ -127,7 +126,7 @@ export function addVaccine(body: Partial<Vaccine> & { name: string; applied_on: 
   const vaccine: Vaccine = {
     id: uuid(),
     dependent_id: null,
-    dose: null,
+    dose: "",
     next_dose_on: null,
     document_id: null,
     shared_with_assistant: false,
@@ -317,6 +316,23 @@ export const medicalRecordsHandlers = [
 
   http.get(`${API}/reminders`, () => HttpResponse.json(reminders())),
 ];
+
+/** Dependente completo no formato de DependentOut, para os testes. */
+export function makeDependent(over: Partial<Dependent> & { id: string; name: string }): Dependent {
+  return {
+    created_at: stamp(),
+    updated_at: stamp(),
+    account_id: "conta-1",
+    type: "person",
+    birth_date: null,
+    bond: null,
+    species: null,
+    can_redeem_coupons: false,
+    linked_user_id: null,
+    active: true,
+    ...over,
+  };
+}
 
 /** /dependentes já existe no backend (PR #6): este handler é só para os testes. */
 export const dependentsHandlers = [

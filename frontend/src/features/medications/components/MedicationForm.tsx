@@ -54,8 +54,8 @@ export function MedicationForm({
   const onSubmit = handleSubmit(async (v) => {
     const input = {
       name: v.name,
-      dose: orNull(v.dose),
-      posology: orNull(v.posology),
+      dose: v.dose,
+      posology: v.posology,
       start_date: v.start_date,
       first_dose: v.first_dose,
       duration_days: v.continuous ? null : Number(v.duration_days),

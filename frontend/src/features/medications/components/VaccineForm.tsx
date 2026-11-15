@@ -38,10 +38,11 @@ export function VaccineForm({ vaccine, onDone }: { vaccine?: Vaccine; onDone: ()
         id: vaccine?.id,
         input: {
           name: v.name,
-          dose: orNull(v.dose),
+          dose: v.dose,
           applied_on: v.applied_on,
           next_dose_on: orNull(v.next_dose_on),
           dependent_id: orNull(v.dependent_id),
+          shared_with_assistant: vaccine?.shared_with_assistant ?? false,
         },
       });
       toast.success(vaccine ? "Vacina atualizada" : "Vacina registrada");

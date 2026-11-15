@@ -10,6 +10,7 @@ import type {
   Reminder,
   Vaccine,
   VaccineInput,
+  VaccinePatch,
 } from "./types";
 
 /** O suficiente para listar tudo de uma conta numa tela (máximo do backend). */
@@ -39,7 +40,7 @@ export function createVaccine(input: VaccineInput): Promise<Vaccine> {
   return apiFetch("/vaccines", { method: "POST", body: input });
 }
 
-export function updateVaccine(id: string, patch: Partial<VaccineInput>): Promise<Vaccine> {
+export function updateVaccine(id: string, patch: VaccinePatch): Promise<Vaccine> {
   return apiFetch(`/vaccines/${id}`, { method: "PATCH", body: patch });
 }
 

@@ -1,13 +1,13 @@
 import { screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import { addDocument, addMedication, db } from "@/mocks/medical-records";
+import { addDocument, addMedication, db, makeDependent } from "@/mocks/medical-records";
 
 import { renderWithQuery } from "../../../../tests/render";
 import { MedicalOverview } from "../components/MedicalOverview";
 
 it("resume documentos, medicamentos, doses de hoje e dependentes", async () => {
-  db.dependents = [{ id: "d1", type: "person", name: "Pedro", bond: "Filho", active: true }];
+  db.dependents = [makeDependent({ id: "d1", name: "Pedro", bond: "Filho" })];
   addDocument({ title: "Hemograma completo", type: "exam" });
   addMedication({ name: "Dipirona", posology: "12/12h", first_dose: "09:00", dependent_id: "d1" });
   renderWithQuery(<MedicalOverview />);

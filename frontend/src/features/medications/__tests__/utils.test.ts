@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { makeDependent } from "@/mocks/medical-records";
+
 import type { Medication, Reminder } from "../types";
 import {
   dueReminders,
@@ -84,9 +86,7 @@ describe("medicationPeriod", () => {
 });
 
 describe("ownerName", () => {
-  const dependents = [
-    { id: "d1", type: "person" as const, name: "Pedro", bond: "Filho", active: true },
-  ];
+  const dependents = [makeDependent({ id: "d1", name: "Pedro", bond: "Filho" })];
 
   it("usa Eu para o próprio usuário e o nome do dependente", () => {
     expect(ownerName(null, dependents)).toBe("Eu");
@@ -113,6 +113,6 @@ describe("dueReminders", () => {
 
 it("todayISO e reminderLabel formatam como a interface espera", () => {
   expect(todayISO(new Date(2026, 0, 5))).toBe("2026-01-05");
-  expect(reminderLabel({ name: "Dipirona", dose: null })).toBe("Dipirona");
+  expect(reminderLabel({ name: "Dipirona", dose: "" })).toBe("Dipirona");
   expect(reminderLabel({ name: "Dipirona", dose: "1 g" })).toBe("Dipirona 1 g");
 });

@@ -1,13 +1,13 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { addDocument, db } from "@/mocks/medical-records";
+import { addDocument, db, makeDependent } from "@/mocks/medical-records";
 
 import { renderWithQuery } from "../../../../tests/render";
 import { DocumentList } from "../components/DocumentList";
 
 beforeEach(() => {
-  db.dependents = [{ id: "d1", type: "person", name: "Pedro", bond: "Filho", active: true }];
+  db.dependents = [makeDependent({ id: "d1", name: "Pedro", bond: "Filho" })];
   addDocument({ title: "Hemograma completo", type: "exam", document_date: "2026-10-20" });
   addDocument({ title: "Receita da Dra. Marina", type: "prescription", dependent_id: "d1" });
 });

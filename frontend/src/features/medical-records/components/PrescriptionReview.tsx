@@ -78,8 +78,8 @@ export function PrescriptionReview({
         prescription_date: orNull(v.prescription_date),
         medications: v.medications.map((m) => ({
           name: m.name,
-          dose: orNull(m.dose),
-          posology: orNull(m.posology),
+          dose: m.dose,
+          posology: m.posology,
           start_date: m.start_date,
           first_dose: m.first_dose,
           duration_days: m.continuous ? null : Number(m.duration_days),

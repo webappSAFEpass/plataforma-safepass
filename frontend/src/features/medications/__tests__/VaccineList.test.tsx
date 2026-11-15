@@ -1,14 +1,14 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { addVaccine, db } from "@/mocks/medical-records";
+import { addVaccine, db, makeDependent } from "@/mocks/medical-records";
 
 import { renderWithQuery } from "../../../../tests/render";
 import { VaccineList } from "../components/VaccineList";
 
 describe("VaccineList", () => {
   it("registra uma vacina com dono dependente e próxima dose", async () => {
-    db.dependents = [{ id: "d1", type: "person", name: "Pedro", bond: "Filho", active: true }];
+    db.dependents = [makeDependent({ id: "d1", name: "Pedro", bond: "Filho" })];
     const { user } = renderWithQuery(<VaccineList />);
 
     await user.click(await screen.findByRole("button", { name: /Registrar vacina/ }));
