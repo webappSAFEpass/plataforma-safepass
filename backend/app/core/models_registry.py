@@ -8,7 +8,9 @@ from app.modules.auth import models as auth_models
 from app.modules.companies import models as companies_models
 from app.modules.coupons import models as coupons_models
 from app.modules.dependents import models as dependents_models
+from app.modules.documents import models as documents_models
 from app.modules.marketplace import models as marketplace_models
+from app.modules.medications import models as medications_models
 from app.modules.plans import models as plans_models
 from app.modules.platform_reviews import models as platform_reviews_models
 from app.modules.points import models as points_models
@@ -24,7 +26,9 @@ __all__ = [
     "companies_models",
     "coupons_models",
     "dependents_models",
+    "documents_models",
     "marketplace_models",
+    "medications_models",
     "plans_models",
     "platform_reviews_models",
     "points_models",
