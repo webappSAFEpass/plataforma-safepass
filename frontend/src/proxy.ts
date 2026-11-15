@@ -22,5 +22,6 @@ export const config = {
     "/dependentes/:path*",
     "/documentos/:path*",
     "/admin/:path*",
+    "/historico-medico/:path*",
   ],
 };
