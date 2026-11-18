@@ -62,3 +62,24 @@ export function initials(name: string): string {
     .map((part) => part[0]!.toUpperCase())
     .join("");
 }
+
+const brlCents = new Intl.NumberFormat(LOCALE, { style: "currency", currency: CURRENCY });
+
+/** Formata centavos como moeda: 4990 -> "R$ 49,90". */
+export function formatCents(cents: number): string {
+  return brlCents.format(cents / 100);
+}
+
+const THOUSAND = 1_000;
+const MILLION = 1_000_000;
+
+function compact(value: number, suffix: string): string {
+  return `${value.toFixed(1).replace(/\.0$/, "")}${suffix}`;
+}
+
+/** Formato compacto da faixa de números da landing: 850 -> "850", 15000 -> "15k", 1.2M -> "1.2M". */
+export function formatStat(value: number): string {
+  if (value >= MILLION) return compact(value / MILLION, "M");
+  if (value >= THOUSAND) return compact(value / THOUSAND, "k");
+  return String(value);
+}

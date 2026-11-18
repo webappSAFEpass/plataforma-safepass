@@ -2,3 +2,5 @@
 coverage
 pnpm-lock.yaml
 src/features/assistant/lib/api.gen.ts
+prototipos
+src/lib/api/schema.d.ts

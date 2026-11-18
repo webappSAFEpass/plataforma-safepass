@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { areaFor, COMPANY_AREA, isActive, PROVIDER_AREA } from "../navigation";
+import { areaFor, COMPANY_AREA, isActive, PROVIDER_AREA, USER_AREA } from "../navigation";
 
 describe("areaFor", () => {
   it("usa a área da empresa nas rotas /empresa", () => {
     expect(areaFor("/empresa/colaboradores")).toBe(COMPANY_AREA);
+  });
+
+  it("usa a área do usuário nas rotas /historico-medico", () => {
+    expect(areaFor("/historico-medico/medicamentos")).toBe(USER_AREA);
   });
 
   it("usa a área do prestador nas demais rotas", () => {

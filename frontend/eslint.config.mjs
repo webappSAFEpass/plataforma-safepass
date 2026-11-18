@@ -15,7 +15,9 @@ export default defineConfig([
     "out/**",
     "build/**",
     "coverage/**",
+    "prototipos/**",
     "next-env.d.ts",
     "src/features/assistant/lib/api.gen.ts",
+    "src/lib/api/schema.d.ts",
   ]),
 ]);
