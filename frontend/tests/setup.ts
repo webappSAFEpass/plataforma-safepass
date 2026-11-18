@@ -2,10 +2,12 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
+import { resetDb } from "../src/mocks/medical-records";
 import { server } from "../src/mocks/node";
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
+  resetDb();
   cleanup();
   server.resetHandlers();
 });

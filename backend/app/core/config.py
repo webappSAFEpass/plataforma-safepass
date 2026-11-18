@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     admin_password: str | None = None
     seed_demo_data: bool = False
 
+    # Histórico médico (Desafio 04): OCR de receitas e arquivos dos documentos.
+    google_api_key: str = ""
+    gemini_model: str = "gemini-flash-lite-latest"
+    gemini_timeout_seconds: int = 25
+    documents_dir: str = "storage/documents"
+
     @model_validator(mode="after")
     def _require_safe_values_in_production(self) -> Self:
         if self.environment != "production":

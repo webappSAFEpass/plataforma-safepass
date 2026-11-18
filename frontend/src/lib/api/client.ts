@@ -53,12 +53,14 @@ function send(
   path: string,
   { method = "GET", body, query, signal }: RequestOptions,
 ): Promise<Response> {
+  // FormData (upload de arquivo) vai como está: o navegador monta o multipart com o boundary.
+  const json = body !== undefined && !(body instanceof FormData);
   return fetch(buildUrl(path, query), {
     method,
     credentials: "include",
     signal,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: json ? { "Content-Type": "application/json" } : undefined,
+    body: json ? JSON.stringify(body) : (body as FormData | undefined),
   });
 }
 
@@ -93,12 +95,22 @@ async function toApiError(res: Response): Promise<ApiError> {
   }
 }
 
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request(path: string, options: RequestOptions): Promise<Response> {
   let res = await send(path, options);
   if (res.status === 401 && !AUTH_NO_REFRESH.has(path) && (await refreshSession())) {
     res = await send(path, options);
   }
   if (!res.ok) throw await toApiError(res);
+  return res;
+}
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const res = await request(path, options);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/** Para downloads: devolve o corpo como Blob (mesma sessão e tratamento de erro do apiFetch). */
+export async function apiFetchBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  return (await request(path, options)).blob();
 }

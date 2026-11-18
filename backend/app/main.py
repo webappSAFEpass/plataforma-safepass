@@ -16,7 +16,9 @@ from app.modules.companies.router import router as companies
 from app.modules.coupons.router import router as coupons
 from app.modules.dashboard.router import router as dashboard
 from app.modules.dependents.router import router as dependents
+from app.modules.documents.router import router as documents
 from app.modules.marketplace.router import router as marketplace
+from app.modules.medications.router import router as medications
 from app.modules.plans.router import admin_router as plans_admin_router
 from app.modules.plans.router import router as plans_router
 from app.modules.platform_reviews.router import admin_router as platform_reviews_admin_router
@@ -83,6 +85,8 @@ def create_app() -> FastAPI:
         alerts,
         providers,
         companies,
+        documents,
+        medications,
     ):
         api_v1.include_router(router)
     app.include_router(api_v1)

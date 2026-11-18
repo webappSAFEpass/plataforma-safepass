@@ -11,3 +11,4 @@ htmlcov/
 *.egg-info/
 local-identities.json
 .DS_Store
+storage/
