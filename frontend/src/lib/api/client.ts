@@ -27,7 +27,17 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-const AUTH_PREFIX = "/auth/";
+// Endpoints que iniciam ou encerram autenticação não devem disparar refresh.
+// /auth/me pode renovar a sessão: o access token expira em 15 min, enquanto o
+// refresh cookie permanece válido por vários dias.
+const AUTH_NO_REFRESH = new Set([
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+]);
 const GENERIC_ERROR = "Algo deu errado. Tente novamente.";
 
 function buildUrl(path: string, query?: Query): string {
@@ -85,7 +95,7 @@ async function toApiError(res: Response): Promise<ApiError> {
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   let res = await send(path, options);
-  if (res.status === 401 && !path.startsWith(AUTH_PREFIX) && (await refreshSession())) {
+  if (res.status === 401 && !AUTH_NO_REFRESH.has(path) && (await refreshSession())) {
     res = await send(path, options);
   }
   if (!res.ok) throw await toApiError(res);
