@@ -23,7 +23,7 @@ export function TestimonialsSection() {
   return (
     <section className="bg-white px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <h2 className="mb-14 text-center font-display text-3xl font-bold text-primary">
+        <h2 className="mb-16 text-center font-display text-3xl font-bold text-primary sm:mb-20">
           Vozes da nossa comunidade
         </h2>
 
